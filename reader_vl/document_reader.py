@@ -11,11 +11,9 @@ from reader_vl.docs.utils import open_file, pdf2image
 from reader_vl.docs.structure.core import StructureBase
 from reader_vl.docs.schemas import Document, Page, Component
 from reader_vl.docs.structure.registry import CLASS_REGISTRY
-
+from reader_vl.models.utils import get_models_path
 
 logging.basicConfig(level=logging.INFO)
-
-WEIGHT_PATHS = "" #TODO: add this
 
 class DocReader:
     def __init__(
@@ -29,32 +27,32 @@ class DocReader:
             failed_image_path: Optional[Union[str, Path]] = Path("./failed.jpg")
         )->None:
         self.check_arguments(file_path, file_bytes)
+
+        WEIGHT_PATHS = get_models_path()
         
         if file_path:
             self.metadata = {
                 "file_path": file_path,
-                "file_name": file_path.name
-                **metadata
+                "file_name": file_path.name,
+                **(metadata or  {})
             }
-        
-        if file_path:
             self.file_bytes = open_file(file_path)
+        
         self.llm = llm
         self.verbose = verbose
         self.yolo = YOLO(weight_path=WEIGHT_PATHS, **yolo_parameters)
         self.failed_image_path = failed_image_path
         self.file_name = file_path.name if file_path else None
         self.file_path = file_path
+        self.file_bytes = file_bytes
         
     def check_arguments(file_path: Optional[Union[Path, str]], file_bytes: bytes) -> None:
         if file_bytes and file_path:
-            raise ValueError("file_path and file_bytes cannot be input at the same time") #TODO: add raise value error
+            raise ValueError("file_path and file_bytes cannot be input at the same time") 
         if not file_bytes and not file_path:
             raise ValueError("file_path and file_bytes need to be given during the initialization")
-        if file_path:
-            if file_path.suffix != ".pdf":
-                raise ValueError("For now cannot") #TODO: add raise
-        
+        if file_path and file_path.suffix != ".pdf":
+                raise ValueError("Only PDF files are currently supported") 
         
     def _parse(self, images:List[np.ndarray])->Document:
         components: List[Page] = []
@@ -93,7 +91,8 @@ class DocReader:
                         logging.error(f'error: {e}, class: {box_class} \n coordinate: ({x1},{y1},{x2},{y2})', exc_info=True)
                         cv2.imwrite(self.failed_image_path, cut_image)
                         logging.info(f'save image to {self.failed_image_path}')
-                        return
+                        continue
+                    
             components.append(Page(
                 page=index,
                 component=child_components,
