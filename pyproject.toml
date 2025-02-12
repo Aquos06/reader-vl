@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "reader-vl"  # Replace with your package's name (important!)
+version = "0.1.0"          # Initial version number
+description = "Go beyond simple parsing.  Our SDK and CLI empower you to build intelligent applications by converting diverse document formats (PDF, DOCX, HTML, and others) into a unified structure.  Critically, we leverage multimodal LLMs to enrich the parsed content, adding layers of meaning and context essential for maximizing the performance of your generative AI pipelines."
+authors = ["Hansen <ruliciohansen@gmail.com>"]  # Your name and email
+
+[tool.poetry.dependencies]
+python = "^3.7"  # Or your minimum Python version
+auto_mix_prep = "==0.2.0"
+docx2pdf = "==0.1.8"
+httpx = "==0.28.1"
+huggingface_hub = "==0.28.1"
+numpy = "==2.2.2"
+opencv_python = "==4.11.0.86"
+pdf2image = "==1.17.0"
+pydantic = "==2.10.6"
+pytesseract = "==0.3.13"
+requests = "==2.32.3" # Note the lowercase 'r'
+tqdm = "==4.67.1"
+ultralytics = "==8.3.67"
+
+[tool.poetry.dev-dependencies]  # Development dependencies go here (if any)
+# Example:
+# pytest = "^7.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
