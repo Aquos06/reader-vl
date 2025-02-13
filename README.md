@@ -166,7 +166,8 @@ We welcome contributions! Feel free to submit pull requests, report issues, or s
 ### Development Setup
 
 ```bash
-git clone https://github.com/yourusername/reader_vl.git
+git clone https://github.com/Aquos06/reader_vl.git
+
 cd reader_vl
 pip install -r requirements.txt
 ```
@@ -176,6 +177,5 @@ pip install -r requirements.txt
 **Reader VL** is released under the MIT License.
 
 ## Contact
-
-For questions or support, open an issue on GitHub or reach out at [your.email@example.com].
+For questions or support, open an issue on GitHub or reach out at [ruliciohansen@gmail.com].
 
