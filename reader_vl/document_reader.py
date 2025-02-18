@@ -91,7 +91,8 @@ class DocReader:
                                 coordinate=component.coordinate,
                                 secondary_content=component.secondary_content,
                                 metadata=component.metadata,
-                                component_type=component.label
+                                component_type=component.label,
+                                image=cut_image if component.label == ContentType.IMAGE or component.label == ContentType.CHART else None
                             )
                         )
                         
@@ -149,7 +150,7 @@ class DocReader:
                 elif component.component_type == ContentType.LIST:
                     markdown_output += self._format_list(component.content)
                 elif component.component_type == ContentType.IMAGE:
-                    markdown_output += self._format_image(component.content)
+                    markdown_output += self._format_image(component.image)
                 elif component.component_type == ContentType.EQUATION:
                     markdown_output += f"$${component.content}$$ \n\n"
                 elif component.component_type == ContentType.FIGURECAPTION:
@@ -161,7 +162,7 @@ class DocReader:
                 elif component.component_type == ContentType.REFERENCE:
                     markdown_output += f"{component.content}\n"
                 elif component.component_type == ContentType.CHART:
-                    markdown_output += self._format_chart(component.content)
+                    markdown_output += self._format_chart(component.image)
                 elif component.component_type == ContentType.FOOTER and not ignore_footer:
                     markdown_output += f"{component.content}\n"
                     
