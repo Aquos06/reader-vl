@@ -1,9 +1,9 @@
-import numpy as np
-
-from typing import List
 from pathlib import Path
-from typing import Union, Optional
+from typing import List, Optional, Union
+
+import numpy as np
 from pdf2image import convert_from_bytes
+
 
 def open_file(file_path: Optional[Union[Path, str]]) -> bytes:
     """
@@ -16,10 +16,11 @@ def open_file(file_path: Optional[Union[Path, str]]) -> bytes:
       The content of the file as bytes.
     """
     if isinstance(file_path, str):
-        file_path = Path(file_path)  
-    with file_path.open('rb') as file:  
+        file_path = Path(file_path)
+    with file_path.open("rb") as file:
         return file.read()
-      
-def pdf2image(pdf_bytes:bytes)->List[np.ndarray]:
+
+
+def pdf2image(pdf_bytes: bytes) -> List[np.ndarray]:
     images = convert_from_bytes(pdf_bytes)
     return [np.array(image) for image in images]
