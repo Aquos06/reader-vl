@@ -52,7 +52,17 @@ class DocReader:
         self.parsed_document = None
         if auto_parse:
             self.parsed_document:Document = self.parse()
-        
+            
+    def get_content(self) -> Document:
+        if self.parsed_document == None:
+            self.parsed_document = self.parse()
+        return self.parsed_document
+    
+    async def aget_content(self) -> Document:
+        if self.parsed_document == None:
+            self.parsed_document = await self.aparse()
+            
+        return self.parsed_document
         
     def check_arguments(file_path: Optional[Union[Path, str]], file_bytes: bytes) -> None:
         if file_bytes and file_path:
@@ -166,7 +176,7 @@ class DocReader:
                 elif component.component_type == ContentType.FOOTER and not ignore_footer:
                     markdown_output += f"{component.content}\n"
                     
-        return
+        return markdown_output
 
     def _format_table(self, table_data: str) -> str:
         if not isinstance(table_data, list) or not all(isinstance(row, list) for row in table_data):
