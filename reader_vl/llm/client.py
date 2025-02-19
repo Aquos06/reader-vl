@@ -1,7 +1,8 @@
-from typing import List, Optional, Generator
 from abc import ABC, abstractmethod
+from typing import Generator, List, Optional
 
-from llm.schemas import CompletionResponse, ChatMessage, ChatCompletionResponse
+from llm.schemas import ChatCompletionResponse, ChatMessage, CompletionResponse
+
 
 class llmBase(ABC):
     def __init__(self, url: str, model: str, max_tokens: Optional[int]) -> None:
@@ -12,28 +13,40 @@ class llmBase(ABC):
     @abstractmethod
     def completion(self, prompt: str, *args, **kwargs) -> CompletionResponse:
         pass
-    
+
     @abstractmethod
     def acompletion(self, prompt: str, *args, **kwargs) -> CompletionResponse:
         pass
-    
+
     @abstractmethod
-    def chat(self, message: List[ChatMessage], *args, **kwargs) -> ChatCompletionResponse:
+    def chat(
+        self, message: List[ChatMessage], *args, **kwargs
+    ) -> ChatCompletionResponse:
         pass
-    
+
     @abstractmethod
-    def achat(self, message: List[ChatMessage], *args, **kwargs) -> ChatCompletionResponse:
+    def achat(
+        self, message: List[ChatMessage], *args, **kwargs
+    ) -> ChatCompletionResponse:
         pass
-    
+
     @abstractmethod
-    def completion_stream(self, prompt: str, *args, **kwargs) -> Generator[CompletionResponse]:
+    def completion_stream(
+        self, prompt: str, *args, **kwargs
+    ) -> Generator[CompletionResponse]:
         raise ValueError("streaming is not supported")
-    
-    def acompletion_stream(self, prompt: str, *args, **kwargs) -> Generator[CompletionResponse]:
+
+    def acompletion_stream(
+        self, prompt: str, *args, **kwargs
+    ) -> Generator[CompletionResponse]:
         raise ValueError("streaming is not supported")
-    
-    def chat_stream(self, message: List[ChatMessage], *args, **kwargs) -> Generator[ChatCompletionResponse]:
+
+    def chat_stream(
+        self, message: List[ChatMessage], *args, **kwargs
+    ) -> Generator[ChatCompletionResponse]:
         raise ValueError("streaming is not supported")
-    
-    def achat_stream(self, message: List[ChatMessage], *args, **kwargs) -> Generator[ChatCompletionResponse]:
+
+    def achat_stream(
+        self, message: List[ChatMessage], *args, **kwargs
+    ) -> Generator[ChatCompletionResponse]:
         raise ValueError("streaming is not supported")

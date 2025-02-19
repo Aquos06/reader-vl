@@ -8,7 +8,7 @@ repos:
     rev: v2.2.1
     hooks:
     - id: autoflake
-      args: [--remove-all-unused-imports, --recursive, --remove-unused-variables, --in-place, src/, largan_crawler/, prompting_engineering/]
+      args: [--remove-all-unused-imports, --recursive, --remove-unused-variables, --in-place, reader_vl/]
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.12.0
