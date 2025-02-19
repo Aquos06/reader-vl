@@ -1,5 +1,6 @@
 from typing import List, Optional, Any
 from pydantic import BaseModel, Field
+from enum import Enum
 
 class ChoiceBase(BaseModel):
     logprobs: Optional[Any] = None
@@ -44,3 +45,7 @@ class ChatCompletionUsage(BaseModel):
 class ChatCompletionResponse(ResponseBase):
     choices: List[ChatCompletionChoice]
     usage: ChatCompletionUsage
+    
+class ChatRole(Enum):
+    USER = "user"
+    ASSISTANT = "assistant"

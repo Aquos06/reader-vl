@@ -1,3 +1,4 @@
+import numpy as np
 from pydantic import BaseModel, ConfigDict
 from pathlib import Path
 from typing import List, Dict, Optional
@@ -11,6 +12,7 @@ class Component(BaseModel):
     secondary_content: Optional[str] = None
     metadata: Optional[Dict] = {}
     component_type: ContentType
+    image: Optional[np.ndarray] = None
 
 class Page(BaseModel):
     page: int
