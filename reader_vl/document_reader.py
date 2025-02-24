@@ -1,7 +1,7 @@
 import base64
 import logging
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import cv2
 import numpy as np
@@ -30,6 +30,7 @@ class DocReader:
         verbose: Optional[bool] = True,
         failed_image_path: Optional[Union[str, Path]] = Path("./failed.jpg"),
         auto_parse: Optional[bool] = True,
+        structure_custom_prompt: Optional[Dict[ContentType, str]] = None,
     ) -> None:
         """
         Initializes the DocReader object.
@@ -43,6 +44,7 @@ class DocReader:
             verbose: Enable verbose output (optional).
             failed_image_path: Path to save failed images (optional).
             auto_parse: Automatically parse the document on initialization (optional).
+            structure_custom_prompt: A dictionary mapping ContentType to custom prompt strings (optional).
         """
         self.check_arguments(file_path, file_bytes)
 
@@ -63,6 +65,10 @@ class DocReader:
         self.file_name = file_path.name if file_path else None
         self.file_path = file_path
         self.file_bytes = file_bytes
+
+        if structure_custom_prompt:
+            for prompt in structure_custom_prompt.keys():
+                CLASS_REGISTRY[prompt].set_prompt(structure_custom_prompt[prompt])
 
         self.parsed_document = None
         if auto_parse:

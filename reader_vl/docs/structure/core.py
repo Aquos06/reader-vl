@@ -6,6 +6,15 @@ import cv2
 import numpy as np
 import pytesseract
 
+from reader_vl.docs.structure.prompt import (
+    CHART_PROMPT,
+    EQUATION_PROMPT,
+    FOOTER_PROMPT,
+    HEADER_PROMPT,
+    IMAGE_PROMPT,
+    TABLE_PROMPT,
+    TITLE_PROMPT,
+)
 from reader_vl.docs.structure.registry import log_info, register_class
 from reader_vl.docs.structure.schemas import ContentType
 from reader_vl.llm.client import llmBase
@@ -60,7 +69,9 @@ class StructureBase(ABC):
 @register_class(4)
 class Image(StructureBase):
     def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
-        super().__init__(coordinate=coordinate, image=image, llm=llm)
+        super().__init__(
+            coordinate=coordinate, image=image, llm=llm, prompt=IMAGE_PROMPT
+        )
 
     @property
     @abstractmethod
@@ -86,6 +97,11 @@ class Section(StructureBase):
 
 @register_class(7)
 class Table(StructureBase):
+    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
+        super().__init__(
+            coordinate=coordinate, image=image, llm=llm, prompt=TABLE_PROMPT
+        )
+
     @property
     @staticmethod
     def label() -> ContentType:
@@ -103,8 +119,10 @@ class Table(StructureBase):
 
 @register_class(0)
 class Header(StructureBase):
-    def __init__(self, coordinate, image: np.ndarray):
-        super().__init__(coordinate, image)
+    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
+        super().__init__(
+            coordinate=coordinate, image=image, llm=llm, prompt=HEADER_PROMPT
+        )
         self.page = self.get_page(image)
 
     @property
@@ -134,6 +152,11 @@ class Header(StructureBase):
 
 @register_class(1)
 class Title(StructureBase):
+    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
+        super().__init__(
+            coordinate=coordinate, image=image, llm=llm, prompt=TITLE_PROMPT
+        )
+
     @property
     @abstractmethod
     def label() -> ContentType:
@@ -155,8 +178,10 @@ class Title(StructureBase):
 
 @register_class(5)
 class Footer(StructureBase):
-    def __init__(self, coordinate, image: np.ndarray):
-        super().__init__(coordinate, image)
+    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
+        super().__init__(
+            coordinate=coordinate, image=image, llm=llm, prompt=FOOTER_PROMPT
+        )
         self.page = self.get_page(image)
 
     @property
@@ -186,6 +211,11 @@ class Footer(StructureBase):
 
 @register_class(6)
 class Chart(StructureBase):
+    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
+        super().__init__(
+            coordinate=coordinate, image=image, llm=llm, prompt=CHART_PROMPT
+        )
+
     @property
     @abstractmethod
     def label() -> ContentType:
@@ -227,6 +257,11 @@ class TableCaption(StructureBase):
 
 @register_class(11)
 class Equation(StructureBase):
+    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
+        super().__init__(
+            coordinate=coordinate, image=image, llm=llm, prompt=EQUATION_PROMPT
+        )
+
     @property
     @abstractmethod
     def label() -> ContentType:
