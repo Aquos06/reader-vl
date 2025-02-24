@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -9,19 +10,32 @@ from reader_vl.docs.structure.registry import log_info, register_class
 from reader_vl.docs.structure.schemas import ContentType
 from reader_vl.llm.client import llmBase
 
+logging.basicConfig(level=logging.INFO)
+
 
 class StructureBase(ABC):
-    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
+    def __init__(
+        self,
+        coordinate,
+        image: np.ndarray,
+        llm: Optional[llmBase] = None,
+        prompt: Optional[str] = None,
+    ):
         self.coordinate = coordinate
         self.image = image
         self.content = self.get_content(image=image)
         self.llm = llm
         self.secondary_content = self.get_secondary_content(image=image)
         self.metadata = self.get_metadata(image=image)
+        self.prompt = prompt
 
     @log_info
     def get_metadata(image: np.ndarray) -> str:
         return
+
+    @abstractmethod
+    def set_prompt(self, prompt: str) -> None:
+        logging.info("No Prompt in this structure")
 
     @property
     @abstractmethod
@@ -45,15 +59,21 @@ class StructureBase(ABC):
 
 @register_class(4)
 class Image(StructureBase):
+    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
+        super().__init__(coordinate=coordinate, image=image, llm=llm)
+
     @property
     @abstractmethod
     def label() -> ContentType:
         return ContentType.IMAGE
 
+    @abstractmethod
+    def set_prompt(self, prompt: str) -> None:
+        self.prompt = prompt
+
     @log_info
     def get_content(self, image: np.ndarray) -> str:
-        prompt = ""
-        return self.llm.completion(prompt=prompt, image=image)
+        return self.llm.completion(prompt=self.prompt, image=image)
 
 
 @register_class(2)
@@ -71,6 +91,10 @@ class Table(StructureBase):
     def label() -> ContentType:
         return ContentType.TABLE
 
+    @abstractmethod
+    def set_prompt(self, prompt: str) -> None:
+        self.prompt = prompt
+
     @log_info
     def get_content(self, image: np.ndarray) -> str:
         prompt = "Reformat the table to a markdown type table. Return me only the markdown type table. Do not add or change any data"
@@ -87,6 +111,10 @@ class Header(StructureBase):
     @staticmethod
     def label() -> ContentType:
         return ContentType.HEADER
+
+    @abstractmethod
+    def set_prompt(self, prompt: str) -> None:
+        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
@@ -111,6 +139,10 @@ class Title(StructureBase):
     def label() -> ContentType:
         return ContentType.TITLE
 
+    @abstractmethod
+    def set_prompt(self, prompt: str) -> None:
+        self.prompt = prompt
+
     @log_info
     def get_content(self, image: np.ndarray) -> str:
         prompt = "Return me the text. Do not add or change any data. Return only the text in the image"
@@ -131,6 +163,10 @@ class Footer(StructureBase):
     @abstractmethod
     def label() -> ContentType:
         return ContentType.FOOTER
+
+    @abstractmethod
+    def set_prompt(self, prompt: str) -> None:
+        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
@@ -154,6 +190,10 @@ class Chart(StructureBase):
     @abstractmethod
     def label() -> ContentType:
         return ContentType.CHART
+
+    @abstractmethod
+    def set_prompt(self, prompt: str) -> None:
+        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
@@ -191,6 +231,10 @@ class Equation(StructureBase):
     @abstractmethod
     def label() -> ContentType:
         return ContentType.EQUATION
+
+    @abstractmethod
+    def set_prompt(self, prompt: str) -> None:
+        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
