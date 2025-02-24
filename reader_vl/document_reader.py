@@ -31,6 +31,19 @@ class DocReader:
         failed_image_path: Optional[Union[str, Path]] = Path("./failed.jpg"),
         auto_parse: Optional[bool] = True,
     ) -> None:
+        """
+        Initializes the DocReader object.
+
+        Args:
+            llm: An LLM client object.
+            file_path: Path to the PDF file (optional).
+            file_bytes: Bytes of the PDF file (optional).
+            metadata: Additional metadata (optional).
+            yolo_parameters: Parameters for the YOLO model (optional).
+            verbose: Enable verbose output (optional).
+            failed_image_path: Path to save failed images (optional).
+            auto_parse: Automatically parse the document on initialization (optional).
+        """
         self.check_arguments(file_path, file_bytes)
 
         WEIGHT_PATHS = get_models_path()
@@ -56,11 +69,23 @@ class DocReader:
             self.parsed_document: Document = self.parse()
 
     def get_content(self) -> Document:
+        """
+        Retrieves the parsed document. Parses the document if it hasn't been parsed yet.
+
+        Returns:
+            The parsed Document object.
+        """
         if self.parsed_document == None:
             self.parsed_document = self.parse()
         return self.parsed_document
 
     async def aget_content(self) -> Document:
+        """
+        Asynchronously retrieves the parsed document. Parses the document if it hasn't been parsed yet.
+
+        Returns:
+            The parsed Document object.
+        """
         if self.parsed_document == None:
             self.parsed_document = await self.aparse()
 
@@ -69,6 +94,17 @@ class DocReader:
     def check_arguments(
         file_path: Optional[Union[Path, str]], file_bytes: bytes
     ) -> None:
+        """
+        Checks the validity of the input arguments.
+
+        Args:
+            file_path: Path to the PDF file (optional).
+            file_bytes: Bytes of the PDF file.
+
+        Raises:
+            ValueError: If both file_path and file_bytes are provided, or if neither is provided.
+            ValueError: If the file is not a PDF.
+        """
         if file_bytes and file_path:
             raise ValueError(
                 "file_path and file_bytes cannot be input at the same time"
@@ -81,6 +117,15 @@ class DocReader:
             raise ValueError("Only PDF files are currently supported")
 
     def _parse(self, images: List[np.ndarray]) -> Document:
+        """
+        Parses the document from a list of images.
+
+        Args:
+            images: List of images representing the PDF pages.
+
+        Returns:
+            The parsed Document object.
+        """
         components: List[Page] = []
 
         if self.verbose:
@@ -152,6 +197,12 @@ class DocReader:
         return self._parse(images=images)
 
     def export_to_json(self) -> List[dict]:
+        """
+        Exports the parsed document to a list of JSON strings.
+
+        Returns:
+            A list of JSON strings representing the parsed components.
+        """
         if self.parsed_document == None:
             self.parsed_document = self.parse()
 
@@ -163,6 +214,15 @@ class DocReader:
         return json_list
 
     def export_to_markdown(self, ignore_footer: Optional[bool] = True) -> str:
+        """
+        Exports the parsed document to a Markdown string.
+
+        Args:
+            ignore_footer: Whether to ignore footer components (optional).
+
+        Returns:
+            A Markdown string representing the parsed document.
+        """
         if self.parsed_document == None:
             self.parsed_document = self.parse()
 

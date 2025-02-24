@@ -17,15 +17,42 @@ logging.basicConfig(level=logging.INFO)
 
 
 class VllmClient(llmBase):
+    """
+    Client for interacting with the VLLM API.
+    Inherits from llmBase and implements its abstract methods.
+    """
+
     def __init__(
         self, url: str, model: str, temperature: float, max_tokens: Optional[int]
     ) -> None:
+        """
+        Initializes the VllmClient object.
+
+        Args:
+            url: The base URL of the VLLM API.
+            model: The name of the VLLM model to use.
+            temperature: The temperature parameter for controlling randomness.
+            max_tokens: The maximum number of tokens to generate (optional).
+        """
         super().__init__(url=url, model=model, max_tokens=max_tokens)
         self.temperature = temperature
         self.completion_url = f"{url}/v1/completions"
         self.chat_url = f"{url}/v1/chat/completions"
 
     async def _aprocess_stream_chunk(self, chunk: str, response_type):
+        """
+        Asynchronously processes a single chunk from the streaming response.
+
+        Args:
+            chunk: The chunk of data received from the stream.
+            response_type: The type of response object to create (CompletionResponse or ChatCompletionResponse).
+
+        Returns:
+            A response object (CompletionResponse or ChatCompletionResponse) created from the chunk.
+
+        Raises:
+            ValueError: If the chunk has an invalid format or JSON decode error.
+        """
         match = re.match(r"^data: ?", chunk)
         if match:
             json_string = chunk[match.end() :]
@@ -42,6 +69,19 @@ class VllmClient(llmBase):
                 )
 
     def _process_stream_chunk(self, chunk: str, response_type):
+        """
+        Processes a single chunk from the streaming response.
+
+        Args:
+            chunk: The chunk of data received from the stream.
+            response_type: The type of response object to create (CompletionResponse or ChatCompletionResponse).
+
+        Returns:
+            A response object (CompletionResponse or ChatCompletionResponse) created from the chunk.
+
+        Raises:
+            ValueError: If the chunk has an invalid format or JSON decode error.
+        """
         match = re.match(r"^data: ?", chunk)
         if match:
             json_string = chunk[match.end() :]
@@ -58,6 +98,16 @@ class VllmClient(llmBase):
                 )
 
     def get_completion_params(self, prompt: str, **kwargs) -> dict:
+        """
+        Constructs the parameters for the completion request.
+
+        Args:
+            prompt: The input prompt string.
+            **kwargs: Additional parameters for the completion request.
+
+        Returns:
+            A dictionary containing the parameters for the completion request.
+        """
         return {
             "temperature": self.temperature,
             "model": self.model,
@@ -67,6 +117,16 @@ class VllmClient(llmBase):
         }
 
     def get_chat_params(self, message: List[ChatMessage], **kwargs) -> dict:
+        """
+        Constructs the parameters for the chat completion request.
+
+        Args:
+            message: A list of ChatMessage objects representing the conversation history.
+            **kwargs: Additional parameters for the chat completion request.
+
+        Returns:
+            A dictionary containing the parameters for the chat completion request.
+        """
         return {
             "temperature": self.temperature,
             "model": self.model,
@@ -76,6 +136,19 @@ class VllmClient(llmBase):
         }
 
     def completion(self, prompt, **kwargs) -> CompletionResponse:
+        """
+        Synchronously generates a completion for a given prompt.
+
+        Args:
+            prompt: The input prompt string.
+            **kwargs: Additional parameters for the completion request.
+
+        Returns:
+            A CompletionResponse object containing the generated completion.
+
+        Raises:
+            ValueError: If there is a JSON decode error or any other error during the request.
+        """
         response = requests.post(
             url=self.completion_url,
             json=self.get_completion_params(prompt=prompt, **kwargs),
@@ -92,6 +165,19 @@ class VllmClient(llmBase):
             raise ValueError(f"An unexpected error occured during completion: {e}")
 
     async def acompletion(self, prompt, **kwargs) -> CompletionResponse:
+        """
+        Asynchronously generates a completion for a given prompt.
+
+        Args:
+            prompt: The input prompt string.
+            **kwargs: Additional parameters for the completion request.
+
+        Returns:
+            A CompletionResponse object containing the generated completion.
+
+        Raises:
+            ValueError: If there is a JSON decode error or any other error during the request.
+        """
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.post(
@@ -109,6 +195,19 @@ class VllmClient(llmBase):
                 raise ValueError(f"An unexpected error occured during completion: {e}")
 
     def chat(self, message, **kwargs) -> ChatCompletionResponse:
+        """
+        Synchronously generates a chat completion for a list of chat messages.
+
+        Args:
+            message: A list of ChatMessage objects representing the conversation history.
+            **kwargs: Additional parameters for the chat completion request.
+
+        Returns:
+            A ChatCompletionResponse object containing the generated chat completion.
+
+        Raises:
+            ValueError: If there is a JSON decode error or any other error during the request.
+        """
         response = requests.post(
             url=self.chat_url, json=self.get_chat_params(message=message, **kwargs)
         )
@@ -124,6 +223,19 @@ class VllmClient(llmBase):
             raise ValueError(f"An unexpected error occured during chat completion: {e}")
 
     async def achat(self, message, **kwargs) -> ChatCompletionResponse:
+        """
+        Asynchronously generates a chat completion for a list of chat messages.
+
+        Args:
+            message: A list of ChatMessage objects representing the conversation history.
+            **kwargs: Additional parameters for the chat completion request.
+
+        Returns:
+            A ChatCompletionResponse object containing the generated chat completion.
+
+        Raises:
+            ValueError: If there is a JSON decode error or any other error during the request.
+        """
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.post(
@@ -143,6 +255,16 @@ class VllmClient(llmBase):
                 )
 
     def completion_stream(self, prompt: str, **kwargs) -> Generator[CompletionResponse]:
+        """
+        Synchronously generates a completion stream for a given prompt.
+
+        Args:
+            prompt: The input prompt string.
+            **kwargs: Additional parameters for the completion request.
+
+        Yields:
+            A Generator of CompletionResponse objects, each representing a chunk of the completion.
+        """
         params = self.get_completion_params(prompt=prompt, **kwargs)
         params["stream"] = True
 
@@ -155,6 +277,19 @@ class VllmClient(llmBase):
     async def acompletion_stream(
         self, prompt: str, **kwargs
     ) -> AsyncGenerator[CompletionResponse]:
+        """
+        Asynchronously generates a completion stream for a given prompt.
+
+        Args:
+            prompt: The input prompt string.
+            **kwargs: Additional parameters for the completion request.
+
+        Yields:
+            An AsyncGenerator of CompletionResponse objects, each representing a chunk of the completion.
+
+        Raises:
+            ValueError: If there is a JSON decode error or any other error during the request.
+        """
         params = self.get_completion_params(prompt=prompt, **kwargs)
         params["stream"] = True
 
@@ -181,6 +316,19 @@ class VllmClient(llmBase):
     async def achat_stream(
         self, message: List[ChatMessage], **kwargs
     ) -> AsyncGenerator[ChatCompletionResponse]:
+        """
+        Asynchronously generates a chat completion stream for a list of chat messages.
+
+        Args:
+            message: A list of ChatMessage objects representing the conversation history.
+            **kwargs: Additional parameters for the chat completion request.
+
+        Yields:
+            An AsyncGenerator of ChatCompletionResponse objects, each representing a chunk of the completion.
+
+        Raises:
+            ValueError: If there is a JSON decode error or any other error during the request.
+        """
         params = self.get_chat_params(message=message, **kwargs)
         params["stream"] = True
 
@@ -208,6 +356,16 @@ class VllmClient(llmBase):
     def chat_stream(
         self, message: List[ChatMessage], **kwargs
     ) -> Generator[ChatCompletionResponse]:
+        """
+        Synchronously generates a chat completion stream for a list of chat messages.
+
+        Args:
+            message: A list of ChatMessage objects representing the conversation history.
+            **kwargs: Additional parameters for the chat completion request.
+
+        Yields:
+            A Generator of ChatCompletionResponse objects, each representing a chunk of the completion.
+        """
         params = self.get_chat_params(message=message, **kwargs)
         params["stream"] = True
 
