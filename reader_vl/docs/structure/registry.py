@@ -1,7 +1,11 @@
 import logging
 from functools import wraps
+from typing import Dict
 
-CLASS_REGISTRY = {}
+from reader_vl.docs.structure.core import StructureBase
+from reader_vl.docs.structure.schemas import ContentType
+
+CLASS_REGISTRY: Dict[ContentType, StructureBase] = {}
 logging.basicConfig(level=logging.INFO)
 
 

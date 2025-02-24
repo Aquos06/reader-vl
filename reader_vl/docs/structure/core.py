@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -5,23 +6,45 @@ import cv2
 import numpy as np
 import pytesseract
 
+from reader_vl.docs.structure.prompt import (
+    CHART_PROMPT,
+    EQUATION_PROMPT,
+    FOOTER_PROMPT,
+    HEADER_PROMPT,
+    IMAGE_PROMPT,
+    TABLE_PROMPT,
+    TITLE_PROMPT,
+)
 from reader_vl.docs.structure.registry import log_info, register_class
 from reader_vl.docs.structure.schemas import ContentType
 from reader_vl.llm.client import llmBase
 
+logging.basicConfig(level=logging.INFO)
+
 
 class StructureBase(ABC):
-    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
+    def __init__(
+        self,
+        coordinate,
+        image: np.ndarray,
+        llm: Optional[llmBase] = None,
+        prompt: Optional[str] = None,
+    ):
         self.coordinate = coordinate
         self.image = image
         self.content = self.get_content(image=image)
         self.llm = llm
         self.secondary_content = self.get_secondary_content(image=image)
         self.metadata = self.get_metadata(image=image)
+        self.prompt = prompt
 
     @log_info
     def get_metadata(image: np.ndarray) -> str:
         return
+
+    @abstractmethod
+    def set_prompt(self, prompt: str) -> None:
+        logging.info("No Prompt in this structure")
 
     @property
     @abstractmethod
@@ -45,15 +68,23 @@ class StructureBase(ABC):
 
 @register_class(4)
 class Image(StructureBase):
+    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
+        super().__init__(
+            coordinate=coordinate, image=image, llm=llm, prompt=IMAGE_PROMPT
+        )
+
     @property
     @abstractmethod
     def label() -> ContentType:
         return ContentType.IMAGE
 
+    @abstractmethod
+    def set_prompt(self, prompt: str) -> None:
+        self.prompt = prompt
+
     @log_info
     def get_content(self, image: np.ndarray) -> str:
-        prompt = ""
-        return self.llm.completion(prompt=prompt, image=image)
+        return self.llm.completion(prompt=self.prompt, image=image)
 
 
 @register_class(2)
@@ -66,10 +97,19 @@ class Section(StructureBase):
 
 @register_class(7)
 class Table(StructureBase):
+    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
+        super().__init__(
+            coordinate=coordinate, image=image, llm=llm, prompt=TABLE_PROMPT
+        )
+
     @property
     @staticmethod
     def label() -> ContentType:
         return ContentType.TABLE
+
+    @abstractmethod
+    def set_prompt(self, prompt: str) -> None:
+        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
@@ -79,14 +119,20 @@ class Table(StructureBase):
 
 @register_class(0)
 class Header(StructureBase):
-    def __init__(self, coordinate, image: np.ndarray):
-        super().__init__(coordinate, image)
+    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
+        super().__init__(
+            coordinate=coordinate, image=image, llm=llm, prompt=HEADER_PROMPT
+        )
         self.page = self.get_page(image)
 
     @property
     @staticmethod
     def label() -> ContentType:
         return ContentType.HEADER
+
+    @abstractmethod
+    def set_prompt(self, prompt: str) -> None:
+        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
@@ -106,10 +152,19 @@ class Header(StructureBase):
 
 @register_class(1)
 class Title(StructureBase):
+    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
+        super().__init__(
+            coordinate=coordinate, image=image, llm=llm, prompt=TITLE_PROMPT
+        )
+
     @property
     @abstractmethod
     def label() -> ContentType:
         return ContentType.TITLE
+
+    @abstractmethod
+    def set_prompt(self, prompt: str) -> None:
+        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
@@ -123,14 +178,20 @@ class Title(StructureBase):
 
 @register_class(5)
 class Footer(StructureBase):
-    def __init__(self, coordinate, image: np.ndarray):
-        super().__init__(coordinate, image)
+    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
+        super().__init__(
+            coordinate=coordinate, image=image, llm=llm, prompt=FOOTER_PROMPT
+        )
         self.page = self.get_page(image)
 
     @property
     @abstractmethod
     def label() -> ContentType:
         return ContentType.FOOTER
+
+    @abstractmethod
+    def set_prompt(self, prompt: str) -> None:
+        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
@@ -150,10 +211,19 @@ class Footer(StructureBase):
 
 @register_class(6)
 class Chart(StructureBase):
+    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
+        super().__init__(
+            coordinate=coordinate, image=image, llm=llm, prompt=CHART_PROMPT
+        )
+
     @property
     @abstractmethod
     def label() -> ContentType:
         return ContentType.CHART
+
+    @abstractmethod
+    def set_prompt(self, prompt: str) -> None:
+        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
@@ -187,10 +257,19 @@ class TableCaption(StructureBase):
 
 @register_class(11)
 class Equation(StructureBase):
+    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
+        super().__init__(
+            coordinate=coordinate, image=image, llm=llm, prompt=EQUATION_PROMPT
+        )
+
     @property
     @abstractmethod
     def label() -> ContentType:
         return ContentType.EQUATION
+
+    @abstractmethod
+    def set_prompt(self, prompt: str) -> None:
+        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
