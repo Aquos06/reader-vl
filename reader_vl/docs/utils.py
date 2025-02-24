@@ -22,5 +22,14 @@ def open_file(file_path: Optional[Union[Path, str]]) -> bytes:
 
 
 def pdf2image(pdf_bytes: bytes) -> List[np.ndarray]:
+    """
+    Converts a PDF file (given as bytes) to a list of images.
+
+    Args:
+        pdf_bytes: The PDF file content as bytes.
+
+    Returns:
+        A list of NumPy arrays, where each array represents an image.
+    """
     images = convert_from_bytes(pdf_bytes)
     return [np.array(image) for image in images]
