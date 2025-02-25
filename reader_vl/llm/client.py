@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Optional
 
 import numpy as np
 
@@ -82,7 +82,7 @@ class llmBase(ABC):
 
     @abstractmethod
     def achat(
-        self, message: List[ChatMessage], *args, **kwargs
+        self, prompt: str, image: np.ndarray, *args, **kwargs
     ) -> ChatCompletionResponse:
         """
         Asynchronously generates a chat completion for a list of chat messages.

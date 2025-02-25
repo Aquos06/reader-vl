@@ -65,10 +65,7 @@ class DocReader:
         self.file_name = file_path.name if file_path else None
         self.file_path = file_path
         self.file_bytes = file_bytes
-
-        if structure_custom_prompt:
-            for prompt in structure_custom_prompt.keys():
-                CLASS_REGISTRY[prompt].set_prompt(structure_custom_prompt[prompt])
+        self.structure_custom_prompt = structure_custom_prompt
 
         self.parsed_document = None
         if auto_parse:
@@ -122,6 +119,11 @@ class DocReader:
         if file_path and file_path.suffix != ".pdf":
             raise ValueError("Only PDF files are currently supported")
 
+    def _get_prompt(self, box_class: int) -> str:
+        if self.structure_custom_prompt:
+            return self.structure_custom_prompt[CLASS_REGISTRY[box_class].label]
+        return
+
     def _parse(self, images: List[np.ndarray]) -> Document:
         """
         Parses the document from a list of images.
@@ -154,8 +156,85 @@ class DocReader:
                         cut_image = image[int(y1) : int(y2), int(x1) : int(x2)]
 
                         component: StructureBase = CLASS_REGISTRY[box_class](
-                            coordinate, self.llm
+                            coordinate,
+                            self.llm,
+                            prompt=self._get_prompt(box_class=box_class),
                         )
+                        child_components.append(
+                            Component(
+                                content=component.content,
+                                coordinate=component.coordinate,
+                                secondary_content=component.secondary_content,
+                                metadata=component.metadata,
+                                component_type=component.label,
+                                image=cut_image
+                                if component.label == ContentType.IMAGE
+                                or component.label == ContentType.CHART
+                                else None,
+                            )
+                        )
+
+                    except Exception as e:
+                        logging.error(
+                            f"error: {e}, class: {box_class} \n coordinate: ({x1},{y1},{x2},{y2})",
+                            exc_info=True,
+                        )
+                        cv2.imwrite(self.failed_image_path, cut_image)
+                        logging.info(f"save image to {self.failed_image_path}")
+                        continue
+
+            components.append(
+                Page(
+                    page=index,
+                    component=child_components,
+                    metadata={},  # TODO add metadata
+                )
+            )
+
+        return Document(
+            filename=self.file_name,
+            filepath=self.file_path,
+            page=components,
+            metadata={},
+        )
+
+    async def _aparse(self, images: List[np.ndarray]) -> Document:
+        """
+        Parses the document from a list of images.
+
+        Args:
+            images: List of images representing the PDF pages.
+
+        Returns:
+            The parsed Document object.
+        """
+        components: List[Page] = []
+
+        if self.verbose:
+            image_iterator = tqdm(enumerate(images), desc="Processing Image")
+        else:
+            image_iterator = enumerate(images)
+
+        for index, image in image_iterator:
+            results = self.yolo(image)
+            child_components: List[Component] = []
+            for result in results:
+                boxes = result.boxes
+                for box in boxes:
+                    try:
+                        x1, y1, x2, y2 = box.xyxy[0]
+                        coordinate = (x1, y1, x2, y2)
+                        box_class = int(box.cls[0])
+                        if abs(y2 - y1) < 10:
+                            continue
+                        cut_image = image[int(y1) : int(y2), int(x1) : int(x2)]
+
+                        component: StructureBase = CLASS_REGISTRY[box_class].create(
+                            coordinate,
+                            self.llm,
+                            prompt=self._get_prompt(box_class=box_class),
+                        )
+
                         child_components.append(
                             Component(
                                 content=component.content,
