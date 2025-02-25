@@ -30,6 +30,12 @@ class CompletionResponse(ResponseBase):
     usage: CompletionUsage
 
 
+class ChatContent(BaseModel):
+    type: str
+    text: Optional[str] = None
+    image_url: Optional[dict] = None
+
+
 class ChatMessage(BaseModel):
     role: str
     content: str
