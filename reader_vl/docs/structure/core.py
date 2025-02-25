@@ -84,7 +84,7 @@ class Image(StructureBase):
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
-        return self.llm.completion(prompt=self.prompt, image=image)
+        return self.llm.chat(prompt=self.prompt, image=image)
 
 
 @register_class(2)
@@ -114,7 +114,7 @@ class Table(StructureBase):
     @log_info
     def get_content(self, image: np.ndarray) -> str:
         prompt = "Reformat the table to a markdown type table. Return me only the markdown type table. Do not add or change any data"
-        return self.llm.completion(prompt=prompt, image=image)
+        return self.llm.chat(prompt=prompt, image=image)
 
 
 @register_class(0)
@@ -137,17 +137,17 @@ class Header(StructureBase):
     @log_info
     def get_content(self, image: np.ndarray) -> str:
         prompt = "Return me the text. Do not add or change any data. Return only the text in the image"
-        return self.llm.completion(prompt=prompt, image=image)
+        return self.llm.chat(prompt=prompt, image=image)
 
     @log_info
     def get_page(self, image: np.ndarray) -> str:
         prompt = "If there is page number. Retun the page number, if there is not return None"
-        return self.llm.completion(prompt=prompt, image=image)
+        return self.llm.chat(prompt=prompt, image=image)
 
     @log_info
     def get_metadata(self, image: np.ndarray) -> str:
         prompt = "Return me a metadata according to this image. For example: {'page':50,'title':'FortiOs'}. Do not add or change any text"
-        return self.llm.completion(prompt=prompt, image=image)
+        return self.llm.chat(prompt=prompt, image=image)
 
 
 @register_class(1)
@@ -169,7 +169,7 @@ class Title(StructureBase):
     @log_info
     def get_content(self, image: np.ndarray) -> str:
         prompt = "Return me the text. Do not add or change any data. Return only the text in the image"
-        return self.llm.completion(prompt=prompt, image=image)
+        return self.llm.chat(prompt=prompt, image=image)
 
     @property
     def title(self):
@@ -196,17 +196,17 @@ class Footer(StructureBase):
     @log_info
     def get_content(self, image: np.ndarray) -> str:
         prompt = "Return me the text. Do not add or change any data. Return only the text in the image"
-        return self.llm.completion(prompt=prompt, image=image)
+        return self.llm.chat(prompt=prompt, image=image)
 
     @log_info
     def get_page(self, image: np.ndarray) -> str:
         prompt = "If there is page number. Retun the page number, if there is not return None"
-        return self.llm.completion(prompt=prompt, image=image)
+        return self.llm.chat(prompt=prompt, image=image)
 
     @log_info
     def get_metadata(self, image: np.ndarray) -> str:
         prompt = "Return me a metadata according to this image. For example: {'page':50,'title':'FortiOs'}. Do not add or change any text"
-        return self.llm.completion(prompt=prompt, image=image)
+        return self.llm.chat(prompt=prompt, image=image)
 
 
 @register_class(6)
@@ -228,7 +228,7 @@ class Chart(StructureBase):
     @log_info
     def get_content(self, image: np.ndarray) -> str:
         prompt = "Describe the chart in this image. Describe the trend, metadata, x-axis, and y-axis. Give me in a form of paragraph. Do not add or change any information, only use the image as your source of information"
-        return self.llm.completion(prompt=prompt, image=image)
+        return self.llm.chat(prompt=prompt, image=image)
 
 
 @register_class(8)
@@ -274,7 +274,7 @@ class Equation(StructureBase):
     @log_info
     def get_content(self, image: np.ndarray) -> str:
         prompt = "Return me the equation given in the image. Explain the given equation in a paragraph. Do not change or add any text in when writting the equation. The return format will be: \n Equation: '....' \n Description: '..."
-        return self.llm.completion(prompt=prompt, image=image)
+        return self.llm.chat(prompt=prompt, image=image)
 
 
 @register_class(3)

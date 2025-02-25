@@ -7,8 +7,7 @@ import numpy as np
 import requests
 
 from reader_vl.llm.client import llmBase
-from reader_vl.llm.schemas import ChatCompletionResponse, ChatContent, ChatMessage
-from reader_vl.llm.utils import encode_image
+from reader_vl.llm.schemas import ChatCompletionResponse
 
 logging.basicConfig(level=logging.INFO)
 
@@ -36,22 +35,7 @@ class VllmClient(llmBase):
         self.completion_url = f"{url}/v1/completions"
         self.chat_url = f"{url}/v1/chat/completions"
 
-    def _format_chat_message(self, prompt: str, image: np.ndarray) -> List[ChatMessage]:
-        enconded_image = encode_image(image=image)
-        return [
-            ChatMessage(
-                role="user",  # TODO: change to role enum
-                content=[
-                    ChatContent(type="text", text=prompt),  # TODO: change to type enum
-                    ChatContent(
-                        type="image_url",
-                        image_url={"url": f"data:image/jpeg;base64,{enconded_image}"},
-                    ),
-                ],
-            )
-        ]
-
-    def get_chat_params(self, message: List[ChatMessage], **kwargs) -> dict:
+    def get_chat_params(self, messages: List[dict], **kwargs) -> dict:
         """
         Constructs the parameters for the chat completion request.
 
@@ -65,7 +49,7 @@ class VllmClient(llmBase):
         return {
             "temperature": self.temperature,
             "model": self.model,
-            "messages": message,
+            "messages": messages,
             "max_tokens": self.max_tokens,
             **kwargs,
         }
@@ -84,9 +68,9 @@ class VllmClient(llmBase):
         Raises:
             ValueError: If there is a JSON decode error or any other error during the request.
         """
-        message = self._format_chat_message(prompt=prompt, image=image)
+        messages = self._format_messages(prompt=prompt, image=image)
         response = requests.post(
-            url=self.chat_url, json=self.get_chat_params(message=message, **kwargs)
+            url=self.chat_url, json=self.get_chat_params(messages=messages, **kwargs)
         )
         try:
             response.raise_for_status()
@@ -115,12 +99,12 @@ class VllmClient(llmBase):
         Raises:
             ValueError: If there is a JSON decode error or any other error during the request.
         """
-        message = self._format_chat_message(prompt=prompt, image=image)
+        messages = self._format_messages(prompt=prompt, image=image)
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.post(
                     url=self.chat_url,
-                    json=self.get_chat_params(message=message, **kwargs),
+                    json=self.get_chat_params(messages=messages, **kwargs),
                 )
                 response.raise_for_status()
                 response = response.json()

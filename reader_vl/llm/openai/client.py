@@ -5,7 +5,6 @@ from openai import OpenAI
 
 from reader_vl.llm.client import llmBase
 from reader_vl.llm.schemas import ChatCompletionResponse
-from reader_vl.llm.utils import encode_image
 
 
 class OpenAIClient(llmBase):
@@ -26,33 +25,7 @@ class OpenAIClient(llmBase):
         self.client = OpenAI(api_key=api_key)
         super().__init__(url="", model=model, max_tokens=max_tokens)
 
-    def _format_messages(self, prompt: str, image: Optional[np.ndarray]) -> list:
-        """
-        Formats the messages for OpenAI's API, including converting an image if provided.
-
-        Args:
-            prompt: The text prompt.
-            image: A NumPy array representing an image (optional).
-
-        Returns:
-            A properly formatted list of messages.
-        """
-        messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
-
-        if image is not None:
-            base64_image = encode_image(image=image)
-            messages[0]["content"].append(
-                {
-                    "type": "image_url",
-                    "image_url": {"url": f"data:image/png;base64,{base64_image}"},
-                }
-            )
-
-        return messages
-
-    def chat(
-        self, prompt: str, image: Optional[np.ndarray], **kwargs
-    ) -> ChatCompletionResponse:
+    def chat(self, prompt: str, image: np.ndarray, **kwargs) -> ChatCompletionResponse:
         """
         Synchronously generates a chat completion for a list of chat messages using the OpenAI Chat Completions API.
 
@@ -69,9 +42,7 @@ class OpenAIClient(llmBase):
         )
         return ChatCompletionResponse(**response)
 
-    def achat(
-        self, prompt: str, image: Optional[np.ndarray], **kwargs
-    ) -> ChatCompletionResponse:
+    def achat(self, prompt: str, image: np.ndarray, **kwargs) -> ChatCompletionResponse:
         """
         Asynchronously generates a chat completion for a list of chat messages.
         This method currently calls the synchronous `chat` method.
