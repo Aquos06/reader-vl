@@ -18,6 +18,7 @@ from reader_vl.docs.structure.prompt import (
 from reader_vl.docs.structure.registry import log_info, register_class
 from reader_vl.docs.structure.schemas import ContentType
 from reader_vl.llm.client import llmBase
+from reader_vl.llm.schemas import ChatCompletionResponse
 
 logging.basicConfig(level=logging.INFO)
 
@@ -29,22 +30,28 @@ class StructureBase(ABC):
         image: np.ndarray,
         llm: Optional[llmBase] = None,
         prompt: Optional[str] = None,
+        content: Optional[str] = None,
     ):
         self.coordinate = coordinate
         self.image = image
-        self.content = self.get_content(image=image)
+
         self.llm = llm
         self.secondary_content = self.get_secondary_content(image=image)
         self.metadata = self.get_metadata(image=image)
         self.prompt = prompt
+        self.content = content if content else self.get_content(image=image)
+
+    @classmethod
+    async def create(
+        cls, coordinate, image: np.ndarray, llm=None, prompt=None, is_async=False
+    ):
+        """Asynchronous factory method"""
+        content = await cls.get_content(image) if is_async else cls.get_content(image)
+        return cls(coordinate, image, llm, prompt, is_async, content=content)
 
     @log_info
     def get_metadata(image: np.ndarray) -> str:
         return
-
-    @abstractmethod
-    def set_prompt(self, prompt: str) -> None:
-        logging.info("No Prompt in this structure")
 
     @property
     @abstractmethod
@@ -56,6 +63,10 @@ class StructureBase(ABC):
         return pytesseract.image_to_string(image, config="--psm 6")
 
     @log_info
+    async def aget_content(self, image: np.ndarray) -> str:
+        return self.get_content(image=image)
+
+    @log_info
     def get_secondary_content(self, image: np.ndarray) -> str:
         return
 
@@ -64,6 +75,9 @@ class StructureBase(ABC):
         x1, y1, x2, y2 = self.coordinate
         image = cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 125), 1)
         return image
+
+    def _get_content_from_llm(self, response: ChatCompletionResponse) -> str:
+        return response.choices[0].message.content[0].text
 
 
 @register_class(4)
@@ -84,7 +98,13 @@ class Image(StructureBase):
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
-        return self.llm.chat(prompt=self.prompt, image=image)
+        response = self.llm.chat(prompt=self.prompt, image=image)
+        return self._get_content_from_llm(response=response)
+
+    @log_info
+    async def aget_content(self, image: np.ndarray) -> str:
+        response = await self.llm.achat(prompt=self.prompt, image=image)
+        return self._get_content_from_llm(response=response)
 
 
 @register_class(2)
@@ -113,8 +133,13 @@ class Table(StructureBase):
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
-        prompt = "Reformat the table to a markdown type table. Return me only the markdown type table. Do not add or change any data"
-        return self.llm.chat(prompt=prompt, image=image)
+        response = self.llm.chat(prompt=self.prompt, image=image)
+        return self._get_content_from_llm(response=response)
+
+    @log_info
+    async def aget_content(self, image: np.ndarray) -> str:
+        response = await self.llm.achat(prompt=self.prompt, image=image)
+        return self._get_content_from_llm(response=response)
 
 
 @register_class(0)
@@ -136,8 +161,13 @@ class Header(StructureBase):
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
-        prompt = "Return me the text. Do not add or change any data. Return only the text in the image"
-        return self.llm.chat(prompt=prompt, image=image)
+        response = self.llm.chat(prompt=self.prompt, image=image)
+        return self._get_content_from_llm(response=response)
+
+    @log_info
+    async def aget_content(self, image: np.ndarray) -> str:
+        response = await self.llm.achat(prompt=self.prompt, image=image)
+        return self._get_content_from_llm(response=response)
 
     @log_info
     def get_page(self, image: np.ndarray) -> str:
@@ -168,8 +198,13 @@ class Title(StructureBase):
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
-        prompt = "Return me the text. Do not add or change any data. Return only the text in the image"
-        return self.llm.chat(prompt=prompt, image=image)
+        response = self.llm.chat(prompt=self.prompt, image=image)
+        return self._get_content_from_llm(response=response)
+
+    @log_info
+    async def aget_content(self, image: np.ndarray) -> str:
+        response = await self.llm.achat(prompt=self.prompt, image=image)
+        return self._get_content_from_llm(response=response)
 
     @property
     def title(self):
@@ -195,8 +230,13 @@ class Footer(StructureBase):
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
-        prompt = "Return me the text. Do not add or change any data. Return only the text in the image"
-        return self.llm.chat(prompt=prompt, image=image)
+        response = self.llm.chat(prompt=self.prompt, image=image)
+        return self._get_content_from_llm(response=response)
+
+    @log_info
+    async def aget_content(self, image: np.ndarray) -> str:
+        response = await self.llm.achat(prompt=self.prompt, image=image)
+        return self._get_content_from_llm(response=response)
 
     @log_info
     def get_page(self, image: np.ndarray) -> str:
@@ -227,8 +267,13 @@ class Chart(StructureBase):
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
-        prompt = "Describe the chart in this image. Describe the trend, metadata, x-axis, and y-axis. Give me in a form of paragraph. Do not add or change any information, only use the image as your source of information"
-        return self.llm.chat(prompt=prompt, image=image)
+        response = self.llm.chat(prompt=self.prompt, image=image)
+        return self._get_content_from_llm(response=response)
+
+    @log_info
+    async def aget_content(self, image: np.ndarray) -> str:
+        response = await self.llm.achat(prompt=self.prompt, image=image)
+        return self._get_content_from_llm(response=response)
 
 
 @register_class(8)
@@ -273,8 +318,13 @@ class Equation(StructureBase):
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
-        prompt = "Return me the equation given in the image. Explain the given equation in a paragraph. Do not change or add any text in when writting the equation. The return format will be: \n Equation: '....' \n Description: '..."
-        return self.llm.chat(prompt=prompt, image=image)
+        response = self.llm.chat(prompt=self.prompt, image=image)
+        return self._get_content_from_llm(response=response)
+
+    @log_info
+    async def aget_content(self, image: np.ndarray) -> str:
+        response = await self.llm.achat(prompt=self.prompt, image=image)
+        return self._get_content_from_llm(response=response)
 
 
 @register_class(3)
