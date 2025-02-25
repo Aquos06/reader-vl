@@ -1,7 +1,16 @@
 from abc import ABC, abstractmethod
-from typing import Generator, List, Optional
+from typing import List, Optional
 
-from llm.schemas import ChatCompletionResponse, ChatMessage, CompletionResponse
+import numpy as np
+
+from reader_vl.llm.schemas import (
+    ChatCompletionResponse,
+    ChatContent,
+    ChatMessage,
+    ChatRole,
+    ContentType,
+)
+from reader_vl.llm.utils import encode_image
 
 
 class llmBase(ABC):
@@ -23,37 +32,41 @@ class llmBase(ABC):
         self.model = model
         self.max_tokens = max_tokens
 
-    @abstractmethod
-    def completion(self, prompt: str, *args, **kwargs) -> CompletionResponse:
+    def _format_messages(
+        self, prompt: str, image: np.ndarray, return_dict: bool = True
+    ) -> list:
         """
-        Synchronously generates a completion for a given prompt.
+        Formats the messages for OpenAI's API, including converting an image if provided.
 
         Args:
-            prompt: The input prompt string.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
+            prompt: The text prompt.
+            image: A NumPy array representing an image (optional).
 
         Returns:
-            A CompletionResponse object containing the generated completion.
+            A properly formatted list of messages.
         """
+        base64_image = encode_image(image=image)
+        messages = [
+            ChatMessage(
+                role=ChatRole.USER,
+                content=[
+                    ChatContent(type=ContentType.TEXT, text=prompt),
+                    ChatContent(
+                        type=ContentType.IMAGE,
+                        image_url={"url": f"data:image/png;base64,{base64_image}"},
+                    ),
+                ],
+            )
+        ]
 
-    @abstractmethod
-    def acompletion(self, prompt: str, *args, **kwargs) -> CompletionResponse:
-        """
-        Asynchronously generates a completion for a given prompt.
+        if return_dict:
+            return [message.model_dump(exclude_none=True) for message in messages]
 
-        Args:
-            prompt: The input prompt string.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
-
-        Returns:
-            A CompletionResponse object containing the generated completion.
-        """
+        return messages
 
     @abstractmethod
     def chat(
-        self, message: List[ChatMessage], *args, **kwargs
+        self, prompt: str, image: np.ndarray, *args, **kwargs
     ) -> ChatCompletionResponse:
         """
         Synchronously generates a chat completion for a list of chat messages.
@@ -82,80 +95,3 @@ class llmBase(ABC):
         Returns:
             A ChatCompletionResponse object containing the generated chat completion.
         """
-
-    @abstractmethod
-    def completion_stream(
-        self, prompt: str, *args, **kwargs
-    ) -> Generator[CompletionResponse]:
-        """
-        Synchronously generates a completion stream for a given prompt.
-
-        Args:
-            prompt: The input prompt string.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
-
-        Yields:
-            A Generator of CompletionResponse objects, each representing a chunk of the completion.
-
-        Raises:
-            ValueError: If streaming is not supported by the implementation.
-        """
-        raise ValueError("streaming is not supported")
-
-    def acompletion_stream(
-        self, prompt: str, *args, **kwargs
-    ) -> Generator[CompletionResponse]:
-        """
-        Asynchronously generates a completion stream for a given prompt.
-
-        Args:
-            prompt: The input prompt string.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
-
-        Yields:
-            A Generator of CompletionResponse objects, each representing a chunk of the completion.
-
-        Raises:
-            ValueError: If streaming is not supported by the implementation.
-        """
-        raise ValueError("streaming is not supported")
-
-    def chat_stream(
-        self, message: List[ChatMessage], *args, **kwargs
-    ) -> Generator[ChatCompletionResponse]:
-        """
-        Synchronously generates a chat completion stream for a list of chat messages.
-
-        Args:
-            message: A list of ChatMessage objects representing the conversation history.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
-
-        Yields:
-            A Generator of ChatCompletionResponse objects, each representing a chunk of the completion.
-
-        Raises:
-            ValueError: If streaming is not supported by the implementation.
-        """
-        raise ValueError("streaming is not supported")
-
-    def achat_stream(
-        self, message: List[ChatMessage], *args, **kwargs
-    ) -> Generator[ChatCompletionResponse]:
-        """
-        Asynchronously generates a chat completion stream for a list of chat messages.
-
-        Args:
-            message: A list of ChatMessage objects representing the conversation history.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
-
-        Yields:
-            A Generator of ChatCompletionResponse objects, each representing a chunk of the completion.
-
-        Raises:
-            ValueError: If streaming is not supported by the implementation.
-        """
-        raise ValueError("streaming is not supported")
