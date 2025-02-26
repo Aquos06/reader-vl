@@ -20,23 +20,31 @@ class ChoiceBase(BaseModel):
 
 
 class ResponseBase(BaseModel):
+    id: str
     created: int
     model: str
+    object: str
 
 
 class ChatContent(BaseModel):
-    type: ContentType
+    type: str
     text: Optional[str] = None
     image_url: Optional[dict] = None
 
 
 class ChatMessage(BaseModel):
-    role: ChatRole
+    role: str
     content: List[ChatContent]
 
 
+class ChatMessageResponse(BaseModel):
+    role: str
+    content: str
+    tool_calls: List[Any]
+
+
 class ChatCompletionChoice(ChoiceBase):
-    message: ChatMessage
+    message: ChatMessageResponse
     index: int
 
 

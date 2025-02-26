@@ -1,3 +1,4 @@
+import json
 import logging
 from abc import ABC, abstractmethod
 from typing import Optional
@@ -50,12 +51,12 @@ class StructureBase(ABC):
         return cls(coordinate, image, llm, prompt, is_async, content=content)
 
     @log_info
-    def get_metadata(image: np.ndarray) -> str:
+    def get_metadata(self, image: np.ndarray) -> str:
         return
 
     @property
     @abstractmethod
-    def label() -> ContentType:
+    def label(self) -> ContentType:
         return ContentType.NONE
 
     @log_info
@@ -77,24 +78,23 @@ class StructureBase(ABC):
         return image
 
     def _get_content_from_llm(self, response: ChatCompletionResponse) -> str:
-        return response.choices[0].message.content[0].text
+        return response.choices[0].message.content
 
 
 @register_class(4)
 class Image(StructureBase):
-    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
-        super().__init__(
-            coordinate=coordinate, image=image, llm=llm, prompt=IMAGE_PROMPT
-        )
+    def __init__(
+        self,
+        coordinate,
+        image: np.ndarray,
+        llm: Optional[llmBase] = None,
+        prompt: Optional[str] = IMAGE_PROMPT,
+    ):
+        super().__init__(coordinate=coordinate, image=image, llm=llm, prompt=prompt)
 
     @property
-    @abstractmethod
-    def label() -> ContentType:
+    def label(self) -> ContentType:
         return ContentType.IMAGE
-
-    @abstractmethod
-    def set_prompt(self, prompt: str) -> None:
-        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
@@ -110,26 +110,24 @@ class Image(StructureBase):
 @register_class(2)
 class Section(StructureBase):
     @property
-    @abstractmethod
-    def label() -> ContentType:
+    def label(self) -> ContentType:
         return ContentType.SECTION
 
 
 @register_class(7)
 class Table(StructureBase):
-    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
-        super().__init__(
-            coordinate=coordinate, image=image, llm=llm, prompt=TABLE_PROMPT
-        )
+    def __init__(
+        self,
+        coordinate,
+        image: np.ndarray,
+        llm: Optional[llmBase] = None,
+        prompt: Optional[str] = TABLE_PROMPT,
+    ):
+        super().__init__(coordinate=coordinate, image=image, llm=llm, prompt=prompt)
 
     @property
-    @staticmethod
-    def label() -> ContentType:
+    def label(self) -> ContentType:
         return ContentType.TABLE
-
-    @abstractmethod
-    def set_prompt(self, prompt: str) -> None:
-        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
@@ -144,20 +142,19 @@ class Table(StructureBase):
 
 @register_class(0)
 class Header(StructureBase):
-    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
-        super().__init__(
-            coordinate=coordinate, image=image, llm=llm, prompt=HEADER_PROMPT
-        )
+    def __init__(
+        self,
+        coordinate,
+        image: np.ndarray,
+        llm: Optional[llmBase] = None,
+        prompt: Optional[str] = HEADER_PROMPT,
+    ):
+        super().__init__(coordinate=coordinate, image=image, llm=llm, prompt=prompt)
         self.page = self.get_page(image)
 
     @property
-    @staticmethod
-    def label() -> ContentType:
+    def label(self) -> ContentType:
         return ContentType.HEADER
-
-    @abstractmethod
-    def set_prompt(self, prompt: str) -> None:
-        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
@@ -172,29 +169,32 @@ class Header(StructureBase):
     @log_info
     def get_page(self, image: np.ndarray) -> str:
         prompt = "If there is page number. Retun the page number, if there is not return None"
-        return self.llm.chat(prompt=prompt, image=image)
+        response = self.llm.chat(prompt=prompt, image=image)
+        return self._get_content_from_llm(response=response)
 
     @log_info
     def get_metadata(self, image: np.ndarray) -> str:
         prompt = "Return me a metadata according to this image. For example: {'page':50,'title':'FortiOs'}. Do not add or change any text"
-        return self.llm.chat(prompt=prompt, image=image)
+        response = self.llm.chat(prompt=prompt, image=image)
+        return json.loads(
+            self._get_content_from_llm(response=response).replace("'", '"')
+        )
 
 
 @register_class(1)
 class Title(StructureBase):
-    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
-        super().__init__(
-            coordinate=coordinate, image=image, llm=llm, prompt=TITLE_PROMPT
-        )
+    def __init__(
+        self,
+        coordinate,
+        image: np.ndarray,
+        llm: Optional[llmBase] = None,
+        prompt: Optional[str] = TITLE_PROMPT,
+    ):
+        super().__init__(coordinate=coordinate, image=image, llm=llm, prompt=prompt)
 
     @property
-    @abstractmethod
-    def label() -> ContentType:
+    def label(self) -> ContentType:
         return ContentType.TITLE
-
-    @abstractmethod
-    def set_prompt(self, prompt: str) -> None:
-        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
@@ -213,20 +213,19 @@ class Title(StructureBase):
 
 @register_class(5)
 class Footer(StructureBase):
-    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
-        super().__init__(
-            coordinate=coordinate, image=image, llm=llm, prompt=FOOTER_PROMPT
-        )
+    def __init__(
+        self,
+        coordinate,
+        image: np.ndarray,
+        llm: Optional[llmBase] = None,
+        prompt: Optional[str] = FOOTER_PROMPT,
+    ):
+        super().__init__(coordinate=coordinate, image=image, llm=llm, prompt=prompt)
         self.page = self.get_page(image)
 
     @property
-    @abstractmethod
-    def label() -> ContentType:
+    def label(self) -> ContentType:
         return ContentType.FOOTER
-
-    @abstractmethod
-    def set_prompt(self, prompt: str) -> None:
-        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
@@ -241,29 +240,32 @@ class Footer(StructureBase):
     @log_info
     def get_page(self, image: np.ndarray) -> str:
         prompt = "If there is page number. Retun the page number, if there is not return None"
-        return self.llm.chat(prompt=prompt, image=image)
+        response = self.llm.chat(prompt=prompt, image=image)
+        return self._get_content_from_llm(response=response)
 
     @log_info
     def get_metadata(self, image: np.ndarray) -> str:
-        prompt = "Return me a metadata according to this image. For example: {'page':50,'title':'FortiOs'}. Do not add or change any text"
-        return self.llm.chat(prompt=prompt, image=image)
+        prompt = "Return me a metadata according to this image. For example: {'page':50, 'title': 'FortiOs'}. Do not add or change any text"
+        response = self.llm.chat(prompt=prompt, image=image)
+        return json.loads(
+            self._get_content_from_llm(response=response).replace("'", '"')
+        )
 
 
 @register_class(6)
 class Chart(StructureBase):
-    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
-        super().__init__(
-            coordinate=coordinate, image=image, llm=llm, prompt=CHART_PROMPT
-        )
+    def __init__(
+        self,
+        coordinate,
+        image: np.ndarray,
+        llm: Optional[llmBase] = None,
+        prompt: Optional[str] = CHART_PROMPT,
+    ):
+        super().__init__(coordinate=coordinate, image=image, llm=llm, prompt=prompt)
 
     @property
-    @abstractmethod
-    def label() -> ContentType:
+    def label(self) -> ContentType:
         return ContentType.CHART
-
-    @abstractmethod
-    def set_prompt(self, prompt: str) -> None:
-        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
@@ -279,42 +281,38 @@ class Chart(StructureBase):
 @register_class(8)
 class Reference(StructureBase):
     @property
-    @abstractmethod
-    def label() -> ContentType:
+    def label(self) -> ContentType:
         return ContentType.REFERENCE
 
 
 @register_class(9)
 class FigureCaption(StructureBase):
     @property
-    @abstractmethod
-    def label() -> ContentType:
+    def label(self) -> ContentType:
         return ContentType.FIGURECAPTION
 
 
 @register_class(10)
 class TableCaption(StructureBase):
     @property
-    @abstractmethod
-    def label() -> ContentType:
+    def label(self) -> ContentType:
         return ContentType.TABLECAPTION
 
 
 @register_class(11)
 class Equation(StructureBase):
-    def __init__(self, coordinate, image: np.ndarray, llm: Optional[llmBase] = None):
-        super().__init__(
-            coordinate=coordinate, image=image, llm=llm, prompt=EQUATION_PROMPT
-        )
+    def __init__(
+        self,
+        coordinate,
+        image: np.ndarray,
+        llm: Optional[llmBase] = None,
+        prompt: Optional[str] = EQUATION_PROMPT,
+    ):
+        super().__init__(coordinate=coordinate, image=image, llm=llm, prompt=prompt)
 
     @property
-    @abstractmethod
-    def label() -> ContentType:
+    def label(self) -> ContentType:
         return ContentType.EQUATION
-
-    @abstractmethod
-    def set_prompt(self, prompt: str) -> None:
-        self.prompt = prompt
 
     @log_info
     def get_content(self, image: np.ndarray) -> str:
@@ -330,6 +328,5 @@ class Equation(StructureBase):
 @register_class(3)
 class List(StructureBase):
     @property
-    @abstractmethod
-    def label() -> ContentType:
+    def label(self) -> ContentType:
         return ContentType.LIST

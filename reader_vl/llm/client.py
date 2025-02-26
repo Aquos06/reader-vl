@@ -48,11 +48,11 @@ class llmBase(ABC):
         base64_image = encode_image(image=image)
         messages = [
             ChatMessage(
-                role=ChatRole.USER,
+                role=ChatRole.USER.value,
                 content=[
-                    ChatContent(type=ContentType.TEXT, text=prompt),
+                    ChatContent(type=ContentType.TEXT.value, text=prompt),
                     ChatContent(
-                        type=ContentType.IMAGE,
+                        type=ContentType.IMAGE.value,
                         image_url={"url": f"data:image/png;base64,{base64_image}"},
                     ),
                 ],

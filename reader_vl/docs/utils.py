@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List, Optional, Union
 
+import cv2
 import numpy as np
 from pdf2image import convert_from_bytes
 
@@ -33,3 +34,14 @@ def pdf2image(pdf_bytes: bytes) -> List[np.ndarray]:
     """
     images = convert_from_bytes(pdf_bytes)
     return [np.array(image) for image in images]
+
+
+def resize_image(image: np.ndarray, min_size=28):
+    h, w = image.shape[:2]
+
+    if h > min_size and w > min_size:
+        return image
+
+    new_h = max(h, min_size)
+    new_w = max(w, min_size)
+    return cv2.resize(image, (new_w, new_h))

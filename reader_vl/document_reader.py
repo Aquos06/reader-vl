@@ -11,7 +11,7 @@ from reader_vl.docs.schemas import Component, Document, Page
 from reader_vl.docs.structure.core import StructureBase
 from reader_vl.docs.structure.registry import CLASS_REGISTRY
 from reader_vl.docs.structure.schemas import ContentType
-from reader_vl.docs.utils import open_file, pdf2image
+from reader_vl.docs.utils import open_file, pdf2image, resize_image
 from reader_vl.docs.yolo import YOLO
 from reader_vl.llm.client import llmBase
 from reader_vl.models.utils import get_models_path
@@ -57,6 +57,8 @@ class DocReader:
                 **(metadata or {}),
             }
             self.file_bytes = open_file(file_path)
+        else:
+            self.file_bytes = file_bytes
 
         self.llm = llm
         self.verbose = verbose
@@ -64,7 +66,6 @@ class DocReader:
         self.failed_image_path = failed_image_path
         self.file_name = file_path.name if file_path else None
         self.file_path = file_path
-        self.file_bytes = file_bytes
         self.structure_custom_prompt = structure_custom_prompt
 
         self.parsed_document = None
@@ -95,7 +96,7 @@ class DocReader:
         return self.parsed_document
 
     def check_arguments(
-        file_path: Optional[Union[Path, str]], file_bytes: bytes
+        self, file_path: Optional[Union[Path, str]], file_bytes: bytes
     ) -> None:
         """
         Checks the validity of the input arguments.
@@ -148,18 +149,25 @@ class DocReader:
                 boxes = result.boxes
                 for box in boxes:
                     try:
-                        x1, y1, x2, y2 = box.xyxy[0]
+                        x1, y1, x2, y2 = map(float, box.xyxy[0])
                         coordinate = (x1, y1, x2, y2)
                         box_class = int(box.cls[0])
                         if abs(y2 - y1) < 10:
                             continue
                         cut_image = image[int(y1) : int(y2), int(x1) : int(x2)]
+                        cut_image = resize_image(cut_image)
 
-                        component: StructureBase = CLASS_REGISTRY[box_class](
-                            coordinate,
-                            self.llm,
-                            prompt=self._get_prompt(box_class=box_class),
-                        )
+                        params = {
+                            "coordinate": coordinate,
+                            "image": cut_image,
+                            "llm": self.llm,
+                        }
+
+                        prompt = self._get_prompt(box_class=box_class)
+                        if prompt:
+                            params["prompt"] = prompt
+
+                        component: StructureBase = CLASS_REGISTRY[box_class](**params)
                         child_components.append(
                             Component(
                                 content=component.content,
@@ -231,6 +239,7 @@ class DocReader:
 
                         component: StructureBase = CLASS_REGISTRY[box_class].create(
                             coordinate,
+                            cut_image,
                             self.llm,
                             prompt=self._get_prompt(box_class=box_class),
                         )
