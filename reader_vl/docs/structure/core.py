@@ -1,4 +1,3 @@
-import json
 import logging
 from abc import ABC, abstractmethod
 from typing import Optional
@@ -166,20 +165,6 @@ class Header(StructureBase):
         response = await self.llm.achat(prompt=self.prompt, image=image)
         return self._get_content_from_llm(response=response)
 
-    @log_info
-    def get_page(self, image: np.ndarray) -> str:
-        prompt = "If there is page number. Retun the page number, if there is not return None"
-        response = self.llm.chat(prompt=prompt, image=image)
-        return self._get_content_from_llm(response=response)
-
-    @log_info
-    def get_metadata(self, image: np.ndarray) -> str:
-        prompt = "Return me a metadata according to this image. For example: {'page':50,'title':'FortiOs'}. Do not add or change any text"
-        response = self.llm.chat(prompt=prompt, image=image)
-        return json.loads(
-            self._get_content_from_llm(response=response).replace("'", '"')
-        )
-
 
 @register_class(1)
 class Title(StructureBase):
@@ -236,20 +221,6 @@ class Footer(StructureBase):
     async def aget_content(self, image: np.ndarray) -> str:
         response = await self.llm.achat(prompt=self.prompt, image=image)
         return self._get_content_from_llm(response=response)
-
-    @log_info
-    def get_page(self, image: np.ndarray) -> str:
-        prompt = "If there is page number. Retun the page number, if there is not return None"
-        response = self.llm.chat(prompt=prompt, image=image)
-        return self._get_content_from_llm(response=response)
-
-    @log_info
-    def get_metadata(self, image: np.ndarray) -> str:
-        prompt = "Return me a metadata according to this image. For example: {'page':50, 'title': 'FortiOs'}. Do not add or change any text"
-        response = self.llm.chat(prompt=prompt, image=image)
-        return json.loads(
-            self._get_content_from_llm(response=response).replace("'", '"')
-        )
 
 
 @register_class(6)
