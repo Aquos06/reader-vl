@@ -37,7 +37,6 @@ class StructureBase(ABC):
 
         self.llm = llm
         self.secondary_content = self.get_secondary_content(image=image)
-        self.metadata = self.get_metadata(image=image)
         self.prompt = prompt
         self.content = content if content else self.get_content(image=image)
 
@@ -48,10 +47,6 @@ class StructureBase(ABC):
         """Asynchronous factory method"""
         content = await cls.get_content(image) if is_async else cls.get_content(image)
         return cls(coordinate, image, llm, prompt, is_async, content=content)
-
-    @log_info
-    def get_metadata(self, image: np.ndarray) -> str:
-        return
 
     @property
     @abstractmethod

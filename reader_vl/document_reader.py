@@ -185,6 +185,7 @@ class DocReader:
         else:
             image_iterator = enumerate(images)
 
+        title = None
         for index, image in image_iterator:
             results = self.yolo(image)
             child_components: List[Component] = []
@@ -211,12 +212,13 @@ class DocReader:
                             params["prompt"] = prompt
 
                         component: StructureBase = CLASS_REGISTRY[box_class](**params)
+
                         child_components.append(
                             Component(
                                 content=component.content,
                                 coordinate=component.coordinate,
                                 secondary_content=component.secondary_content,
-                                metadata=component.metadata,
+                                metadata={"title": title},
                                 component_type=component.label,
                                 image=cut_image
                                 if component.label == ContentType.IMAGE
@@ -224,6 +226,9 @@ class DocReader:
                                 else None,
                             )
                         )
+
+                        if component.label == ContentType.TITLE:
+                            title = component.content
 
                     except Exception as e:
                         logging.error(
@@ -270,6 +275,8 @@ class DocReader:
         for index, image in image_iterator:
             results = self.yolo(image)
             child_components: List[Component] = []
+
+            title = None
             for result in results:
                 boxes = result.boxes
                 for box in boxes:
@@ -293,7 +300,7 @@ class DocReader:
                                 content=component.content,
                                 coordinate=component.coordinate,
                                 secondary_content=component.secondary_content,
-                                metadata=component.metadata,
+                                metadata={"title": title},
                                 component_type=component.label,
                                 image=cut_image
                                 if component.label == ContentType.IMAGE
@@ -301,6 +308,9 @@ class DocReader:
                                 else None,
                             )
                         )
+
+                        if component.label == ContentType.TITLE:
+                            title = component.content
 
                     except Exception as e:
                         logging.error(
