@@ -81,16 +81,17 @@ class DocReader:
             ),
         )
 
-    def get_content(self) -> Document:
-        """
-        Retrieves the parsed document. Parses the document if it hasn't been parsed yet.
-
-        Returns:
-            The parsed Document object.
-        """
+    def get_plain_text(self) -> str:
         if self.parsed_document == None:
             self.parsed_document = self.parse()
-        return self.parsed_document
+
+        text = ""
+
+        for page in self.parsed_document.page:
+            for componet in page.component:
+                text += f"{componet.content}\n"
+
+        return text
 
     def get_labeled_pdf(self) -> List[np.ndarray]:
         if self.parsed_document == None:
@@ -125,6 +126,17 @@ class DocReader:
             labeled_images.append(page_image)
 
         return labeled_images
+
+    def get_content(self) -> Document:
+        """
+        Retrieves the parsed document. Parses the document if it hasn't been parsed yet.
+
+        Returns:
+            The parsed Document object.
+        """
+        if self.parsed_document == None:
+            self.parsed_document = self.parse()
+        return self.parsed_document
 
     async def aget_content(self) -> Document:
         """
