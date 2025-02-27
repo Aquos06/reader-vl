@@ -67,10 +67,19 @@ class DocReader:
         self.file_name = file_path.name if file_path else None
         self.file_path = file_path
         self.structure_custom_prompt = structure_custom_prompt
+        self.images = None
 
         self.parsed_document = None
         if auto_parse:
             self.parsed_document: Document = self.parse()
+
+    def _sort_component(self, child_components: List[Component]) -> List[Component]:
+        return sorted(
+            child_components,
+            key=lambda component: (
+                component.coordinate[1] + component.coordinate[3] / 2
+            ),
+        )
 
     def get_content(self) -> Document:
         """
@@ -82,6 +91,40 @@ class DocReader:
         if self.parsed_document == None:
             self.parsed_document = self.parse()
         return self.parsed_document
+
+    def get_labeled_pdf(self) -> List[np.ndarray]:
+        if self.parsed_document == None:
+            self.parsed_document = self.parse()
+
+        labeled_images = []
+
+        for page_index, page in enumerate(self.parsed_document.page):
+            page_image = self.images[page_index].copy()
+
+            for component in page.component:
+                try:
+                    x1, y1, x2, y2 = map(int, component.coordinate)
+                    label = str(component.component_type.value)
+
+                    cv2.rectangle(page_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+                    text_position = (x1, y1 - 10 if y1 > 20 else y1 + 15)
+                    cv2.putText(
+                        page_image,
+                        label,
+                        text_position,
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        (0, 0, 255),
+                        1,
+                        cv2.LINE_AA,
+                    )
+
+                except Exception:
+                    logging.error(f"Error drawing annotation for component")
+            labeled_images.append(page_image)
+
+        return labeled_images
 
     async def aget_content(self) -> Document:
         """
@@ -191,11 +234,12 @@ class DocReader:
                         logging.info(f"save image to {self.failed_image_path}")
                         continue
 
+            child_components = self._sort_component(child_components=child_components)
+
             components.append(
                 Page(
                     page=index,
                     component=child_components,
-                    metadata={},  # TODO add metadata
                 )
             )
 
@@ -203,7 +247,7 @@ class DocReader:
             filename=self.file_name,
             filepath=self.file_path,
             page=components,
-            metadata={},
+            metadata=self.metadata,
         )
 
     async def _aparse(self, images: List[np.ndarray]) -> Document:
@@ -267,11 +311,12 @@ class DocReader:
                         logging.info(f"save image to {self.failed_image_path}")
                         continue
 
+            child_components = self._sort_component(child_components=child_components)
+
             components.append(
                 Page(
                     page=index,
                     component=child_components,
-                    metadata={},  # TODO add metadata
                 )
             )
 
@@ -279,16 +324,16 @@ class DocReader:
             filename=self.file_name,
             filepath=self.file_path,
             page=components,
-            metadata={},
+            metadata=self.metadata,
         )
 
     def parse(self) -> Document:
-        images = pdf2image(self.file_bytes)
-        return self._parse(images=images)
+        self.images = pdf2image(self.file_bytes)
+        return self._parse(images=self.images)
 
     async def aparse(self) -> Document:
-        images = pdf2image(self.file_bytes)
-        return self._parse(images=images)
+        self.images = pdf2image(self.file_bytes)
+        return self._parse(images=self.images)
 
     def export_to_json(self) -> List[dict]:
         """

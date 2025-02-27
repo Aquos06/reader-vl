@@ -149,7 +149,6 @@ class Header(StructureBase):
         prompt: Optional[str] = HEADER_PROMPT,
     ):
         super().__init__(coordinate=coordinate, image=image, llm=llm, prompt=prompt)
-        self.page = self.get_page(image)
 
     @property
     def label(self) -> ContentType:
@@ -206,7 +205,6 @@ class Footer(StructureBase):
         prompt: Optional[str] = FOOTER_PROMPT,
     ):
         super().__init__(coordinate=coordinate, image=image, llm=llm, prompt=prompt)
-        self.page = self.get_page(image)
 
     @property
     def label(self) -> ContentType:
