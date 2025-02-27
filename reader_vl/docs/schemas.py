@@ -8,8 +8,10 @@ from reader_vl.docs.structure.schemas import ContentType
 
 
 class Component(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     content: str
-    coordinate: Dict[str, float]
+    coordinate: tuple
     secondary_content: Optional[str] = None
     metadata: Optional[Dict] = {}
     component_type: ContentType

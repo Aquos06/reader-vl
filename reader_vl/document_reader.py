@@ -11,7 +11,7 @@ from reader_vl.docs.schemas import Component, Document, Page
 from reader_vl.docs.structure.core import StructureBase
 from reader_vl.docs.structure.registry import CLASS_REGISTRY
 from reader_vl.docs.structure.schemas import ContentType
-from reader_vl.docs.utils import open_file, pdf2image
+from reader_vl.docs.utils import open_file, pdf2image, resize_image
 from reader_vl.docs.yolo import YOLO
 from reader_vl.llm.client import llmBase
 from reader_vl.models.utils import get_models_path
@@ -57,6 +57,8 @@ class DocReader:
                 **(metadata or {}),
             }
             self.file_bytes = open_file(file_path)
+        else:
+            self.file_bytes = file_bytes
 
         self.llm = llm
         self.verbose = verbose
@@ -64,12 +66,66 @@ class DocReader:
         self.failed_image_path = failed_image_path
         self.file_name = file_path.name if file_path else None
         self.file_path = file_path
-        self.file_bytes = file_bytes
         self.structure_custom_prompt = structure_custom_prompt
+        self.images = None
 
         self.parsed_document = None
         if auto_parse:
             self.parsed_document: Document = self.parse()
+
+    def _sort_component(self, child_components: List[Component]) -> List[Component]:
+        return sorted(
+            child_components,
+            key=lambda component: (
+                component.coordinate[1] + component.coordinate[3] / 2
+            ),
+        )
+
+    def get_plain_text(self) -> str:
+        if self.parsed_document == None:
+            self.parsed_document = self.parse()
+
+        text = ""
+
+        for page in self.parsed_document.page:
+            for componet in page.component:
+                text += f"{componet.content}\n"
+
+        return text
+
+    def get_labeled_pdf(self) -> List[np.ndarray]:
+        if self.parsed_document == None:
+            self.parsed_document = self.parse()
+
+        labeled_images = []
+
+        for page_index, page in enumerate(self.parsed_document.page):
+            page_image = self.images[page_index].copy()
+
+            for component in page.component:
+                try:
+                    x1, y1, x2, y2 = map(int, component.coordinate)
+                    label = str(component.component_type.value)
+
+                    cv2.rectangle(page_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+                    text_position = (x1, y1 - 10 if y1 > 20 else y1 + 15)
+                    cv2.putText(
+                        page_image,
+                        label,
+                        text_position,
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        (0, 0, 255),
+                        1,
+                        cv2.LINE_AA,
+                    )
+
+                except Exception:
+                    logging.error(f"Error drawing annotation for component")
+            labeled_images.append(page_image)
+
+        return labeled_images
 
     def get_content(self) -> Document:
         """
@@ -95,7 +151,7 @@ class DocReader:
         return self.parsed_document
 
     def check_arguments(
-        file_path: Optional[Union[Path, str]], file_bytes: bytes
+        self, file_path: Optional[Union[Path, str]], file_bytes: bytes
     ) -> None:
         """
         Checks the validity of the input arguments.
@@ -141,6 +197,7 @@ class DocReader:
         else:
             image_iterator = enumerate(images)
 
+        title = None
         for index, image in image_iterator:
             results = self.yolo(image)
             child_components: List[Component] = []
@@ -148,24 +205,32 @@ class DocReader:
                 boxes = result.boxes
                 for box in boxes:
                     try:
-                        x1, y1, x2, y2 = box.xyxy[0]
+                        x1, y1, x2, y2 = map(float, box.xyxy[0])
                         coordinate = (x1, y1, x2, y2)
                         box_class = int(box.cls[0])
                         if abs(y2 - y1) < 10:
                             continue
                         cut_image = image[int(y1) : int(y2), int(x1) : int(x2)]
+                        cut_image = resize_image(cut_image)
 
-                        component: StructureBase = CLASS_REGISTRY[box_class](
-                            coordinate,
-                            self.llm,
-                            prompt=self._get_prompt(box_class=box_class),
-                        )
+                        params = {
+                            "coordinate": coordinate,
+                            "image": cut_image,
+                            "llm": self.llm,
+                        }
+
+                        prompt = self._get_prompt(box_class=box_class)
+                        if prompt:
+                            params["prompt"] = prompt
+
+                        component: StructureBase = CLASS_REGISTRY[box_class](**params)
+
                         child_components.append(
                             Component(
                                 content=component.content,
                                 coordinate=component.coordinate,
                                 secondary_content=component.secondary_content,
-                                metadata=component.metadata,
+                                metadata={"title": title},
                                 component_type=component.label,
                                 image=cut_image
                                 if component.label == ContentType.IMAGE
@@ -173,6 +238,9 @@ class DocReader:
                                 else None,
                             )
                         )
+
+                        if component.label == ContentType.TITLE:
+                            title = component.content
 
                     except Exception as e:
                         logging.error(
@@ -183,11 +251,12 @@ class DocReader:
                         logging.info(f"save image to {self.failed_image_path}")
                         continue
 
+            child_components = self._sort_component(child_components=child_components)
+
             components.append(
                 Page(
                     page=index,
                     component=child_components,
-                    metadata={},  # TODO add metadata
                 )
             )
 
@@ -195,7 +264,7 @@ class DocReader:
             filename=self.file_name,
             filepath=self.file_path,
             page=components,
-            metadata={},
+            metadata=self.metadata,
         )
 
     async def _aparse(self, images: List[np.ndarray]) -> Document:
@@ -218,6 +287,8 @@ class DocReader:
         for index, image in image_iterator:
             results = self.yolo(image)
             child_components: List[Component] = []
+
+            title = None
             for result in results:
                 boxes = result.boxes
                 for box in boxes:
@@ -231,6 +302,7 @@ class DocReader:
 
                         component: StructureBase = CLASS_REGISTRY[box_class].create(
                             coordinate,
+                            cut_image,
                             self.llm,
                             prompt=self._get_prompt(box_class=box_class),
                         )
@@ -240,7 +312,7 @@ class DocReader:
                                 content=component.content,
                                 coordinate=component.coordinate,
                                 secondary_content=component.secondary_content,
-                                metadata=component.metadata,
+                                metadata={"title": title},
                                 component_type=component.label,
                                 image=cut_image
                                 if component.label == ContentType.IMAGE
@@ -248,6 +320,9 @@ class DocReader:
                                 else None,
                             )
                         )
+
+                        if component.label == ContentType.TITLE:
+                            title = component.content
 
                     except Exception as e:
                         logging.error(
@@ -258,11 +333,12 @@ class DocReader:
                         logging.info(f"save image to {self.failed_image_path}")
                         continue
 
+            child_components = self._sort_component(child_components=child_components)
+
             components.append(
                 Page(
                     page=index,
                     component=child_components,
-                    metadata={},  # TODO add metadata
                 )
             )
 
@@ -270,16 +346,16 @@ class DocReader:
             filename=self.file_name,
             filepath=self.file_path,
             page=components,
-            metadata={},
+            metadata=self.metadata,
         )
 
     def parse(self) -> Document:
-        images = pdf2image(self.file_bytes)
-        return self._parse(images=images)
+        self.images = pdf2image(self.file_bytes)
+        return self._parse(images=self.images)
 
     async def aparse(self) -> Document:
-        images = pdf2image(self.file_bytes)
-        return self._parse(images=images)
+        self.images = pdf2image(self.file_bytes)
+        return self._parse(images=self.images)
 
     def export_to_json(self) -> List[dict]:
         """
