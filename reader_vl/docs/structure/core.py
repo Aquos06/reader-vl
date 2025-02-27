@@ -31,12 +31,17 @@ class StructureBase(ABC):
         llm: Optional[llmBase] = None,
         prompt: Optional[str] = None,
         content: Optional[str] = None,
+        secondary_content: Optional[str] = None,
     ):
         self.coordinate = coordinate
         self.image = image
 
         self.llm = llm
-        self.secondary_content = self.get_secondary_content(image=image)
+        self.secondary_content = (
+            secondary_content
+            if secondary_content
+            else self.get_secondary_content(image=image)
+        )
         self.prompt = prompt
         self.content = content if content else self.get_content(image=image)
 
@@ -46,7 +51,20 @@ class StructureBase(ABC):
     ):
         """Asynchronous factory method"""
         content = await cls.get_content(image) if is_async else cls.get_content(image)
-        return cls(coordinate, image, llm, prompt, is_async, content=content)
+        secondary_content = (
+            await cls.aget_secondary_content(image)
+            if is_async
+            else cls.get_secondary_content(image)
+        )
+        return cls(
+            coordinate,
+            image,
+            llm,
+            prompt,
+            is_async,
+            content=content,
+            secondary_content=secondary_content,
+        )
 
     @property
     @abstractmethod
@@ -64,6 +82,10 @@ class StructureBase(ABC):
     @log_info
     def get_secondary_content(self, image: np.ndarray) -> str:
         return
+
+    @log_info
+    def aget_secondary_content(self, iamge: np.ndarray) -> str:
+        raise
 
     @property
     def labeled_image(self, image: np.ndarray) -> np.ndarray:
@@ -117,6 +139,7 @@ class Table(StructureBase):
         llm: Optional[llmBase] = None,
         prompt: Optional[str] = TABLE_PROMPT,
     ):
+        self.secondary_prompt = "Extract a concise summary or explanation from the given table data, highlighting key insights, trends, and important relationships between values. Identify significant patterns, comparisons, or anomalies and present the information in a clear, structured manner. Ensure that the summary is contextually relevant and easy to understand."
         super().__init__(coordinate=coordinate, image=image, llm=llm, prompt=prompt)
 
     @property
@@ -131,6 +154,16 @@ class Table(StructureBase):
     @log_info
     async def aget_content(self, image: np.ndarray) -> str:
         response = await self.llm.achat(prompt=self.prompt, image=image)
+        return self._get_content_from_llm(response=response)
+
+    @log_info
+    def get_secondary_content(self, image):
+        response = self.llm.chat(prompt=self.secondary_prompt, image=image)
+        return self._get_content_from_llm(response=response)
+
+    @log_info
+    async def aget_secondary_content(self, image):
+        response = await self.llm.achat(prompt=self.secondary_prompt, image=image)
         return self._get_content_from_llm(response=response)
 
 
@@ -272,6 +305,7 @@ class Equation(StructureBase):
         llm: Optional[llmBase] = None,
         prompt: Optional[str] = EQUATION_PROMPT,
     ):
+        self.secondary_prompt = "Extract a concise summary or explanation of the given equation, describing its meaning, purpose, and key components. Break down the variables, constants, and their relationships in simple terms. If applicable, explain its real-world significance, use cases, and any assumptions involved. Ensure the explanation is clear, structured, and easy to understand."
         super().__init__(coordinate=coordinate, image=image, llm=llm, prompt=prompt)
 
     @property
@@ -287,6 +321,16 @@ class Equation(StructureBase):
     async def aget_content(self, image: np.ndarray) -> str:
         response = await self.llm.achat(prompt=self.prompt, image=image)
         return self._get_content_from_llm(response=response)
+
+    @log_info
+    def get_secondary_content(self, image: np.ndarray) -> str:
+        response = self.llm.chat(prompt=self.secondary_prompt, image=image)
+        return self._get_content_from_llm(response)
+
+    @log_info
+    async def aget_secondary_content(self, image: np.ndarray) -> str:
+        response = await self.llm.achat(prompt=self.secondary_prompt, image=image)
+        return self._get_content_from_llm(response)
 
 
 @register_class(3)
