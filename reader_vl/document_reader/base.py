@@ -1,10 +1,12 @@
 import base64
 import logging
+import os
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import cv2
 import numpy as np
+from docx2pdf import convert
 from tqdm import tqdm
 
 from reader_vl.docs.schemas import Component, Document, Page
@@ -19,7 +21,7 @@ from reader_vl.models.utils import get_models_path
 logging.basicConfig(level=logging.INFO)
 
 
-class DocReader:
+class ReaderBase:
     def __init__(
         self,
         llm: llmBase,
@@ -72,6 +74,23 @@ class DocReader:
         self.parsed_document = None
         if auto_parse:
             self.parsed_document: Document = self.parse()
+
+    # TODO: refactor this to a inheritence OOP (DocReader Base, PDF, DOcx)
+    def _convert_docx_bytes_to_pdf(self, docx_bytes, file_path=None):
+        temp_pdf_path = "output.pdf"
+        if not file_path:
+            with open("temp.docx", "wb") as temp_file:
+                temp_file.write(docx_bytes)
+
+            file_path = "temp.docx"
+
+        convert(file_path, temp_pdf_path)
+
+        with open(temp_pdf_path, "rb") as file:
+            pdf_bytes = file.read()
+
+        os.remove(temp_pdf_path)
+        return pdf_bytes
 
     def _sort_component(self, child_components: List[Component]) -> List[Component]:
         return sorted(
@@ -172,8 +191,6 @@ class DocReader:
             raise ValueError(
                 "file_path and file_bytes need to be given during the initialization"
             )
-        if file_path and file_path.suffix != ".pdf":
-            raise ValueError("Only PDF files are currently supported")
 
     def _get_prompt(self, box_class: int) -> str:
         if self.structure_custom_prompt:
