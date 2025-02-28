@@ -4,11 +4,11 @@
 
 ## Overview
 
-**Reader VL** goes beyond simple parsing. Our SDK and CLI empower you to build intelligent applications by converting diverse document formats (PDF, DOCX, HTML, and others) into a unified structure. Critically, we leverage multimodal LLMs to enrich the parsed content, adding layers of meaning and context essential for maximizing the performance of your generative AI pipelines.
+**Reader VL** goes beyond simple parsing. Our SDK and CLI empower you to build intelligent applications by converting diverse document formats (PDF, DOCX) into a unified structure. Critically, we leverage multimodal LLMs to enrich the parsed content, adding layers of meaning and context essential for maximizing the performance of your generative AI pipelines.
 
 ## Features
 
-- 📄 **Multi-format Support**: Process PDFs, DOCX, HTML, and more.
+- 📄 **Multi-format Support**: Process PDFs and DOCX (for now).
 - 🤖 **Multimodal LLM Integration**: Enhance extracted data with AI-powered insights.
 - 🏗 **Structured Output**: Convert documents into a well-defined schema.
 - 🏎 **Fast & Efficient**: Leverages YOLO for object detection and Tesseract OCR.
@@ -16,7 +16,7 @@
 
 ## Installation
 
-You can install **Reader VL** via pip:
+You can install **Reader VL** via pip (**not available in pypi yet**):
 
 ```bash
 pip install reader_vl
@@ -27,32 +27,34 @@ pip install reader_vl
 ### Basic Example
 
 ```python
-from reader_vl.docs.reader import DocReader
-from reader_vl.llm.client import OpenAIClient, VllmClient
+from pathlib import Path
+from reader_vl.document_reader import PDFReader 
+from reader_vl.llm.open_ai import OpenAIClient
+from reader_vl.document_reader import DocxReader
 
 # Initialize OpenAI client
 llm = OpenAIClient(api_key="your-api-key", model="gpt-4")
 
 # Load a PDF file
-reader = DocReader(llm=llm, file_path="sample.pdf")
-
-# Parse the document
-parsed_document = reader.parse()
+reader = PDFreader(llm=llm, file_path="sample.pdf")
+# or Docx file
+reader = DocxReader(llm=llm, file_path="sample.docx")
 
 # Display structured output
-print(parsed_document)
+print(parsed_document.export_to_json())
 ```
 
 Alternatively, if you're using a self-hosted LLM:
 
 ```python
+from reader_vl.llm.vllm import VllmClient
+
 # Initialize VLLM client
 llm = VllmClient(url="http://localhost:8000", model="custom-llm", temperature=0.7, max_tokens=512)
 
 # Load and parse the document
 reader = DocReader(llm=llm, file_path="sample.pdf")
-parsed_document = reader.parse()
-print(parsed_document)
+print(parsed_document.export_to_json())
 ```
 
 ### Asynchronous Parsing
@@ -66,46 +68,6 @@ async def main():
 
 asyncio.run(main())
 ```
-
-## LLM Clients
-
-Reader VL provides integration with multiple LLM clients for processing document content.
-
-### OpenAI Client (DocReader LLM)
-
-`OpenAIClient` integrates with OpenAI models for text completion and chat-based interactions within **DocReader LLM**.
-
-#### Usage:
-
-```python
-from reader_vl.llm.client import OpenAIClient
-
-client = OpenAIClient(api_key="your-api-key", model="gpt-4")
-
-response = client.completion("Summarize this text:")
-print(response)
-```
-
-#### Features:
-- Supports text completion and chat interactions.
-- Works with OpenAI's API.
-- Provides both synchronous and asynchronous methods.
-
-### VLLM Client (DocReader LLM)
-
-`VllmClient` is designed to interact with self-hosted or remote LLM APIs within **DocReader LLM**.
-
-#### Usage:
-
-```python
-from reader_vl.llm.client import VllmClient
-
-client = VllmClient(url="http://localhost:8000", model="custom-llm", temperature=0.7, max_tokens=512)
-
-response = client.completion("Extract key points from this document.")
-print(response)
-```
-
 #### Features:
 - Works with self-hosted LLMs via REST APIs.
 - Supports streaming responses for efficiency.
@@ -115,14 +77,18 @@ print(response)
 
 **Reader VL** extracts structured components from documents, such as:
 
-- **Header** (Page numbers, section titles)
-- **Title** (Main document title)
-- **Section** (Text sections with hierarchy)
-- **Tables** (Markdown-formatted tables)
-- **Lists** (Ordered and unordered lists)
-- **Equations** (Extracted and explained formulas)
-- **Charts** (Visual data representations)
-- **References & Captions** (Bibliographic elements and figure/table captions)
+- **Header** 
+- **Title** 
+- **Image** 
+- **Section** 
+- **Table** 
+- **List** 
+- **Equation**
+- **Chart** 
+- **Footer** 
+- **Reference** (Reference of a paper)
+- **Figure Caption**
+- **Table Caption**
 
 ## Architecture
 
@@ -132,32 +98,6 @@ print(response)
 - **OCR (Tesseract)**: Extracts text from detected regions.
 - **Multimodal LLM Processing**: Enhances extracted content for AI pipelines.
 - **Schema-based Output**: Provides structured data (JSON-like `Document` schema).
-
-## Extending Reader VL
-
-Reader VL supports custom document structures by registering new components:
-
-```python
-from reader_vl.docs.structure.core import StructureBase
-from reader_vl.docs.structure.registry import register_class
-
-@register_class(12)
-class CustomComponent(StructureBase):
-    @property
-    def label(self):
-        return "CUSTOM_COMPONENT"
-
-    def get_content(self, image):
-        return "Custom content extraction logic here."
-```
-
-## CLI Usage
-
-Reader VL also includes a command-line interface:
-
-```bash
-reader_vl parse --file sample.pdf --output result.json
-```
 
 ## Contributing
 
