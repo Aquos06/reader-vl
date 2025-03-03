@@ -1,0 +1,6 @@
+flake8
+pylint
+black
+mypy
+pytest
+pre-commit

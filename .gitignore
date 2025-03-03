@@ -1,0 +1,6 @@
+.venv
+*.pt
+*.pdf
+*.jpg
+
+*.pyc
