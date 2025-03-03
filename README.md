@@ -16,7 +16,7 @@
 
 ## Installation
 
-You can install **Reader VL** via pip (**not available in pypi yet**):
+You can install **Reader VL** via pip:
 
 ```bash
 pip install reader_vl
@@ -36,12 +36,14 @@ from reader_vl.document_reader import DocxReader
 llm = OpenAIClient(api_key="your-api-key", model="gpt-4")
 
 # Load a PDF file
-reader = PDFreader(llm=llm, file_path="sample.pdf")
+parsed_doc = PDFreader(llm=llm, file_path="sample.pdf")
 # or Docx file
-reader = DocxReader(llm=llm, file_path="sample.docx")
+parsed_doc = DocxReader(llm=llm, file_path="sample.docx")
 
 # Display structured output
 print(parsed_document.export_to_json())
+# or
+parsed_document.get_content() 
 ```
 
 Alternatively, if you're using a self-hosted LLM:
@@ -53,16 +55,20 @@ from reader_vl.llm.vllm import VllmClient
 llm = VllmClient(url="http://localhost:8000", model="custom-llm", temperature=0.7, max_tokens=512)
 
 # Load and parse the document
-reader = DocReader(llm=llm, file_path="sample.pdf")
+parsed_doc = DocReader(llm=llm, file_path="sample.pdf")
 print(parsed_document.export_to_json())
+# or
+parsed_doc.get_content()
 ```
 
 ### Asynchronous Parsing
 
 ```python
 import asyncio
+from reader_vl.document_reader import PDFReader
 
 async def main():
+    reader = PDFReader(llm=llm, file_path="sample.pdf", auto_parse = False)
     parsed_doc = await reader.aparse()
     print(parsed_doc)
 
@@ -118,4 +124,3 @@ pip install -r requirements.txt
 
 ## Contact
 For questions or support, open an issue on GitHub or reach out at [ruliciohansen@gmail.com].
-
