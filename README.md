@@ -1,3 +1,5 @@
+
+
 # Reader VL
 
 ![PyPI](https://img.shields.io/pypi/v/reader_vl) ![License](https://img.shields.io/github/license/yourusername/reader_vl) ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
@@ -29,7 +31,7 @@ pip install reader_vl
 ```python
 from pathlib import Path
 from reader_vl.document_reader import PDFReader 
-from reader_vl.llm.open_ai import OpenAIClient
+from reader_vl.llm.openai import OpenAIClient
 from reader_vl.document_reader import DocxReader
 
 # Initialize OpenAI client
@@ -118,4 +120,3 @@ pip install -r requirements.txt
 
 ## Contact
 For questions or support, open an issue on GitHub or reach out at [ruliciohansen@gmail.com].
-
